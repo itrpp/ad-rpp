@@ -1,0 +1,348 @@
+/* Custom styles for index page */
+.info-box {
+    transition: all 0.3s ease;
+    border-radius: 0.375rem;
+}
+
+.info-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-box-content a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.info-box-content a:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+.card {
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-bottom: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+}
+
+.btn {
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Guest welcome section styles */
+.alert-primary {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border-left: 4px solid #2196f3;
+}
+
+.alert-heading {
+    color: #1565c0;
+    font-weight: 600;
+}
+
+/* Hospital welcome background */
+.hospital-welcome-bg {
+    background: linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.8)), 
+                url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwMCIgaGVpZ2h0PSI2MDAiIHZpZXdCb3g9IjAgMCAxMDAwIDYwMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEwMDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjRjBGOUZGIi8+CjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzg3Q0VFRiIvPgo8cmVjdCB4PSIwIiB5PSIzMDAiIHdpZHRoPSIxMDAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI0Y4RjlGQSIvPgo8Y2lyY2xlIGN4PSI1MDAiIGN5PSIzMDAiIHI9IjEwMCIgZmlsbD0iI0ZGRkZGRiIgZmlsbC1vcGFjaXR5PSIwLjgiLz4KPHN2ZyB4PSI0MDAiIHk9IjIwMCIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIHZpZXdCb3g9IjAgMCAyMDAgMjAwIiBmaWxsPSJub25lIj4KPHBhdGggZD0iTTEwMCA1MEMxMzguMDcxIDUwIDE3MCA4MS45Mjg5IDE3MCAxMjBDMTcwIDE1OC4wNzEgMTM4LjA3MSAxOTAgMTAwIDE5MEM2MS45Mjg5IDE5MCAzMCAxNTguMDcxIDMwIDEyMEMzMCA4MS45Mjg5IDYxLjkyODkgNTAgMTAwIDUwWiIgZmlsbD0iIzIxOTZGNyIvPgo8cGF0aCBkPSJNMTIwIDkwSDgwVjEzMEgxMjBWOTBaIiBmaWxsPSIjRkZGRkZGIi8+CjxwYXRoIGQ9Ik0xMDAgMTEwQzEwNS41MjMgMTEwIDExMCAxMDUuNTIzIDExMCAxMDBDMTEwIDk0LjQ3NzEgMTA1LjUyMyA5MCAxMDAgOTBDOTQuNDc3MSA5MCA5MCA5NC40NzcxIDkwIDEwMEM5MCAxMDUuNTIzIDk0LjQ3NzEgMTEwIDEwMCAxMTBaIiBmaWxsPSIjMjE5NkY3Ii8+Cjwvc3ZnPgo=') center/cover;
+    border: 2px solid #28a745;
+    border-radius: 0.75rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.hospital-welcome-bg::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+    z-index: 1;
+}
+
+.hospital-welcome-bg > * {
+    position: relative;
+    z-index: 2;
+}
+
+.hospital-welcome-bg .alert-heading {
+    color: #155724;
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.hospital-welcome-bg p,
+.hospital-welcome-bg li {
+    color: #155724;
+    font-weight: 500;
+    text-shadow: 0 1px 1px rgba(255, 255, 255, 0.6);
+}
+
+.card.bg-light {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6;
+}
+
+.card.bg-light .card-title {
+    color: #495057;
+    font-weight: 600;
+}
+
+.card.bg-light .card-text {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+/* Copyright styles for guest users */
+.text-muted small {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.text-muted hr {
+    border-color: #dee2e6;
+    opacity: 0.5;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .info-box {
+        margin-bottom: 1rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn-lg {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+    
+    .hospital-welcome-bg {
+        background-size: cover;
+        background-position: center;
+        padding: 1rem;
+    }
+    
+    .hospital-welcome-bg .alert-heading {
+        font-size: 1.2rem;
+    }
+    
+    .hospital-welcome-bg p,
+    .hospital-welcome-bg li {
+        font-size: 0.9rem;
+    }
+}
+
+/* Animation for smooth transitions */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Pending Approval Alert Styling */
+#pending-approval-alert {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    border: 2px solid #ffc107;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+    animation: pulse 2s infinite;
+    position: relative;
+    overflow: hidden;
+}
+
+#pending-approval-alert::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+    z-index: 1;
+}
+
+#pending-approval-alert > * {
+    position: relative;
+    z-index: 2;
+}
+
+#pending-approval-alert .fas.fa-clock {
+    color: #856404;
+    font-size: 1.2em;
+    margin-right: 0.5rem;
+    animation: tick 1s ease-in-out infinite;
+}
+
+#pending-approval-alert strong {
+    color: #856404;
+    font-weight: 700;
+    font-size: 1.1em;
+}
+
+#pending-approval-alert .text-muted {
+    color: #6c5b00 !important;
+    font-weight: 500;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3); }
+    50% { box-shadow: 0 6px 16px rgba(255, 193, 7, 0.5); }
+    100% { box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3); }
+}
+
+@keyframes tick {
+    0% { transform: rotate(0deg); }
+    25% { transform: rotate(5deg); }
+    75% { transform: rotate(-5deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* Permission Info Styles */
+.alert-light.border {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 1px solid #dee2e6 !important;
+    border-radius: 0.5rem;
+}
+
+.alert-light .alert-heading {
+    color: #495057;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.alert-light .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.alert-light .text-muted {
+    color: #6c757d !important;
+    font-size: 0.8rem;
+}
+
+/* Regular User Menu Styles */
+.alert-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    border: 1px solid #bee5eb;
+    border-radius: 0.5rem;
+}
+
+.alert-info .alert-heading {
+    color: #0c5460;
+    font-weight: 600;
+}
+
+.btn-outline-primary,
+.btn-outline-success {
+    border-width: 1px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-success:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(32, 206, 177, 0.1);
+}
+
+/* Modern UI just for welcome section */
+
+
+.welcome-section .alert-heading i {
+    color: #10b981;
+}
+
+.welcome-section .card.bg-light {
+    background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 24px rgba(2,6,23,0.06);
+    border-radius: 0.85rem;
+}
+
+.welcome-section .card.bg-light .card-body .card-text {
+    color: #475569;
+}
+
+.welcome-section .logo-img {
+    width: 48px;
+    height: auto;
+    margin-right: 8px;
+    vertical-align: middle;
+    border-radius: 8px;
+}
+
+.welcome-section .btn-modern {
+    border: 0;
+    border-radius: 0.75rem;
+    padding: 0.9rem 1.25rem;
+    font-weight: 700;
+    letter-spacing: .2px;
+    transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+.welcome-section .btn-primary.btn-modern {
+    background: linear-gradient(135deg, #10b981 0%, #22c55e 100%);
+    box-shadow: 0 10px 18px rgba(34,197,94,0.28);
+}
+.welcome-section .btn-primary.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(34,197,94,0.35);
+    filter: brightness(1.03);
+}
+
+.welcome-section .btn-info.btn-modern {
+    background: linear-gradient(135deg, #10b981 0%, #22c55e 100%);
+    color: #fff;
+    box-shadow: 0 10px 18px rgba(34,197,94,0.28);
+}
+.welcome-section .btn-info.btn-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 28px rgba(34,197,94,0.35);
+    filter: brightness(1.03);
+}
+
+.welcome-section .btn-modern i { margin-right: .4rem; }
+
+/* Blinking animation for red text */
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+.blink-red {
+    color: red !important;
+    animation: blink 1.5s infinite;
+    font-weight: bold;
+}
+
+

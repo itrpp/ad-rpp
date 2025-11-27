@@ -1,0 +1,2 @@
+# Ignore only the root index.php (do not affect other index.php files)
+/index.php

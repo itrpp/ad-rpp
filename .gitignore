@@ -1,0 +1,9 @@
+# Ignore only the root index.php (do not affect other index.php files)
+/index.php
+# Also ignore frontend entry files
+/frontend/index.php
+/frontend/web/index.php
+/vendor/
+/runtime/
+/web/assets/
+/.env
