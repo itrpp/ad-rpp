@@ -1,10 +1,19 @@
 <?php
 $params = array_merge(
     require __DIR__ . '/../../common/config/params.php',
-    require __DIR__ . '/../../common/config/params-local.php',
-    require __DIR__ . '/params.php',
-    require __DIR__ . '/params-local.php'
+    require __DIR__ . '/params.php'
 );
+
+// เพิ่มไฟล์ local params ถ้ามีอยู่ (optional)
+$commonParamsLocal = __DIR__ . '/../../common/config/params-local.php';
+if (file_exists($commonParamsLocal)) {
+    $params = array_merge($params, require $commonParamsLocal);
+}
+
+$backendParamsLocal = __DIR__ . '/params-local.php';
+if (file_exists($backendParamsLocal)) {
+    $params = array_merge($params, require $backendParamsLocal);
+}
 
 return [
     'id' => 'app-backend',
