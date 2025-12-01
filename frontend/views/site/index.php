@@ -272,7 +272,7 @@ $this->registerCssFile('@web/css/site-index.css');
                                 </a>
                             </span>
                             <div class="info-box-content" style="position: relative; z-index: 1;">
-                                <a href="http://internet.rpphosp.go.th/" target="_blank" class="text-decoration-none" style="color: #ffffff !important;">
+                                <a href="https://www.rpphosp.go.th/" target="_blank" class="text-decoration-none" style="color: #ffffff !important;">
                                     <span class="info-box-text" style="font-weight: 700; font-size: 1.1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block; margin-bottom: 0.5rem;">เว็บไซต์โรงพยาบาล</span>
                                     <span class="info-box-number" style="font-weight: 600; font-size: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block;">ไปที่เว็บไซต์</span>
                                 </a>
