@@ -245,12 +245,12 @@ if (class_exists('yii\debug\Module')) {
             <div class="row">
             <div class="col-md-12">
                     <?= $form->field($model, 'streetaddress', [
-                        'options' => ['class' => 'form-group'],
+                        'options' => ['class' => 'form-group required'],
                     ])->textarea([
                         'rows' => 3,
                         'maxlength' => true,
                         'class' => 'form-control',
-                        'placeholder' => 'รายละเอียดเพิ่มเติม ในการขอใช้งานระบบ',
+                        'placeholder' => 'รายละเอียดเพิ่มเติม หรือวัตถุประสงค์ในการขอใช้งานระบบ',
                         'aria-describedby' => 'streetaddressHelp'
                     ]) ?>
                     <small class="text-info" id="streetaddressHelp" class="form-text text-muted">User และ รหัสผ่านที่ลงทะเบียนในระบบนี้จะใช้งานได้กับ KM,PACSRPPH5,Internet ในโรงพยาบาล,VPN</small>
@@ -342,7 +342,8 @@ if (class_exists('yii\debug\Module')) {
         .field-aduser-title.required label:after,
         .field-aduser-id_card.required label:after,
         .field-aduser-password.required label:after,
-        .field-aduser-confirm_password.required label:after {
+        .field-aduser-confirm_password.required label:after,
+        .field-aduser-streetaddress.required label:after {
             content: ' *';
             color: #dc3545;
             font-weight: bold;

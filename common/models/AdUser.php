@@ -30,9 +30,9 @@ class AdUser extends Model
     public function rules()
     {
         return [
-            [['samaccountname', 'username', 'sername', 'personalTitle', 'department', 'title', 'password', 'confirm_password'], 'required'],
+            [['samaccountname', 'username', 'sername', 'personalTitle', 'department', 'title', 'password', 'confirm_password', 'streetaddress'], 'required'],
             [['email'], 'email'],
-            [['target_ou', 'telephone', 'agree_terms', 'confirm_password', 'personalTitle', 'name_en', 'id_card', 'company', 'ephis_code', 'streetaddress'], 'safe'],
+            [['target_ou', 'telephone', 'agree_terms', 'confirm_password', 'personalTitle', 'name_en', 'id_card', 'company', 'ephis_code'], 'safe'],
             [['samaccountname'], 'string', 'max' => 20],
             [['username', 'sername'], 'string', 'max' => 50],
             [['email', 'department'], 'string', 'max' => 100],
