@@ -345,4 +345,365 @@
     font-weight: bold;
 }
 
+/* Modern Services Section - Inspired by Greener Bangkok */
+.modern-services-section {
+    margin: 2rem 0;
+    padding: 0;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem 0;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.section-title i {
+    margin-right: 0.75rem;
+    color: #10b981;
+    -webkit-text-fill-color: #10b981;
+}
+
+.section-subtitle {
+    font-size: 1.1rem;
+    color: #6b7280;
+    font-weight: 400;
+    margin: 0;
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    padding: 0;
+}
+
+.service-card {
+    background: #ffffff;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 2px 3px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid transparent;
+}
+
+.service-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 12px -5px rgba(0, 0, 0, 0.1), 0 5px 5px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Border colors for each service card */
+.service-card.card-border-blue {
+    border-color: rgba(33, 150, 243, 0.8);
+}
+
+.service-card.card-border-green {
+    border-color: rgba(76, 175, 80, 0.8);
+}
+
+.service-card.card-border-dark-green {
+    border-color: rgba(15, 81, 50, 0.8);
+}
+
+.service-card.card-border-red {
+    border-color: rgba(244, 67, 54, 0.8);
+}
+
+.service-card.card-border-orange {
+    border-color: rgba(255, 152, 0, 0.8);
+}
+
+.service-card.card-border-blue-light {
+    border-color: rgba(91, 135, 228, 0.8);
+}
+
+.service-card.card-border-indigo {
+    border-color: rgba(27, 84, 207, 0.8);
+}
+
+.service-card.card-border-lime {
+    border-color: rgba(152, 199, 98, 0.8);
+}
+
+.service-card.card-border-dark-red {
+    border-color: rgba(177, 10, 10, 0.8);
+}
+
+.service-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.service-card-image {
+    position: relative;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    filter: brightness(1.1) contrast(1.1) saturate(1.2);
+    background-size: cover !important;
+    background-position: center !important;
+}
+
+.service-card:hover .service-card-image {
+    transform: scale(1.05);
+    filter: brightness(1.2) contrast(1.15) saturate(1.3);
+}
+
+.service-card-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    z-index: 2;
+    flex-shrink: 0;
+    margin-right: 0.75rem;
+}
+
+.service-card:hover .service-card-icon {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+}
+
+.service-card-icon i {
+    font-size: 1.5rem;
+    color: #1a1a1a;
+}
+
+/* Icon background colors */
+.service-card-icon.icon-bg-blue {
+    background: linear-gradient(135deg, rgba(33, 150, 243, 0.95), rgba(25, 118, 210, 0.95));
+    box-shadow: 0 10px 20px rgba(33, 150, 243, 0.3);
+}
+
+.service-card-icon.icon-bg-blue i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-blue {
+    box-shadow: 0 15px 30px rgba(33, 150, 243, 0.4);
+}
+
+.service-card-icon.icon-bg-green {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(56, 142, 60, 0.95));
+    box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+}
+
+.service-card-icon.icon-bg-green i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-green {
+    box-shadow: 0 15px 30px rgba(76, 175, 80, 0.4);
+}
+
+.service-card-icon.icon-bg-dark-green {
+    background: linear-gradient(135deg, rgba(15, 81, 50, 0.95), rgba(10, 61, 38, 0.95));
+    box-shadow: 0 10px 20px rgba(15, 81, 50, 0.3);
+}
+
+.service-card-icon.icon-bg-dark-green i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-dark-green {
+    box-shadow: 0 15px 30px rgba(15, 81, 50, 0.4);
+}
+
+.service-card-icon.icon-bg-red {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.95), rgba(198, 40, 40, 0.95));
+    box-shadow: 0 10px 20px rgba(244, 67, 54, 0.3);
+}
+
+.service-card-icon.icon-bg-red i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-red {
+    box-shadow: 0 15px 30px rgba(244, 67, 54, 0.4);
+}
+
+.service-card-icon.icon-bg-orange {
+    background: linear-gradient(135deg, rgba(255, 152, 0, 0.95), rgba(245, 124, 0, 0.95));
+    box-shadow: 0 10px 20px rgba(255, 152, 0, 0.3);
+}
+
+.service-card-icon.icon-bg-orange i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-orange {
+    box-shadow: 0 15px 30px rgba(255, 152, 0, 0.4);
+}
+
+.service-card-icon.icon-bg-blue-light {
+    background: linear-gradient(135deg, rgba(91, 135, 228, 0.95), rgba(66, 103, 178, 0.95));
+    box-shadow: 0 10px 20px rgba(91, 135, 228, 0.3);
+}
+
+.service-card-icon.icon-bg-blue-light i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-blue-light {
+    box-shadow: 0 15px 30px rgba(91, 135, 228, 0.4);
+}
+
+.service-card-icon.icon-bg-indigo {
+    background: linear-gradient(135deg, rgba(27, 84, 207, 0.95), rgba(20, 63, 155, 0.95));
+    box-shadow: 0 10px 20px rgba(27, 84, 207, 0.3);
+}
+
+.service-card-icon.icon-bg-indigo i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-indigo {
+    box-shadow: 0 15px 30px rgba(27, 84, 207, 0.4);
+}
+
+.service-card-icon.icon-bg-lime {
+    background: linear-gradient(135deg, rgba(152, 199, 98, 0.95), rgba(124, 179, 66, 0.95));
+    box-shadow: 0 10px 20px rgba(152, 199, 98, 0.3);
+}
+
+.service-card-icon.icon-bg-lime i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-lime {
+    box-shadow: 0 15px 30px rgba(152, 199, 98, 0.4);
+}
+
+.service-card-icon.icon-bg-dark-red {
+    background: linear-gradient(135deg, rgba(177, 10, 10, 0.95), rgba(139, 8, 8, 0.95));
+    box-shadow: 0 10px 20px rgba(177, 10, 10, 0.3);
+}
+
+.service-card-icon.icon-bg-dark-red i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-dark-red {
+    box-shadow: 0 15px 30px rgba(177, 10, 10, 0.4);
+}
+
+.service-card-content {
+    padding: 0.75rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background: #ffffff;
+}
+
+.service-card-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.service-card-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0 0 0.25rem 0;
+    line-height: 1.3;
+    transition: color 0.3s ease;
+}
+
+.service-card:hover .service-card-title {
+    color: #10b981;
+}
+
+.service-card-description {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin: 0;
+    font-weight: 400;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .section-title {
+        font-size: 2rem;
+    }
+    
+    .section-subtitle {
+        font-size: 1rem;
+    }
+    
+    .services-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .service-card-image {
+        height: 80px;
+    }
+    
+    .service-card-icon {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .service-card-icon i {
+        font-size: 0.875rem;
+    }
+    
+    .service-card-content {
+        padding: 0.625rem;
+    }
+    
+    .service-card-title {
+        font-size: 0.8rem;
+    }
+    
+    .service-card-description {
+        font-size: 0.7rem;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .services-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1025px) {
+    .services-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 1400px) {
+    .services-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
 

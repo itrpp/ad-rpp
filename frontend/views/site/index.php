@@ -207,169 +207,155 @@ $this->registerCssFile('@web/css/site-index.css');
 
         <!-- Hospital Systems Section - Only show for logged in users -->
         <?php if (!Yii::$app->user->isGuest): ?>
-        <div class="card card-outline">
-            <div class="card-header">
-                <h3 class="card-title">
+        <div class="modern-services-section">
+            <div class="section-header">
+                <h2 class="section-title">
                     <i class="fas fa-sitemap"></i> ระบบงานที่เกี่ยวข้องในโรงพยาบาล
-                </h3>
+                </h2>
+                <p class="section-subtitle">เข้าถึงระบบต่างๆ ของโรงพยาบาลได้ที่นี่</p>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-12 col-sm-6 col-lg-3 mb-3">
-                        <div class="info-box" style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('<?= Yii::getAlias('@web/img/e-learning.jpg') ?>') center / cover no-repeat; color:#ffffff; -webkit-text-stroke: 0.3px #000; text-shadow: 1px 1px 2px #000, -1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;">
-                            <span class="info-box-icon bg-info elevation-1">
-                                <a href="https://elearning.rpphosp.go.th/" target="_blank" class="d-block text-white text-decoration-none">
+            <div class="services-grid">
+                    <div class="service-card card-border-blue">
+                        <a href="https://elearning.rpphosp.go.th/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(25, 118, 210, 0.3)), url('<?= Yii::getAlias('@web/img/e-learning.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-blue">
                                     <i class="fas fa-book"></i>
-                                </a>
-                            </span>
-                            <div class="info-box-content" style="position: relative; z-index: 1;">
-                                <a href="https://elearning.rpphosp.go.th/" target="_blank" class="text-decoration-none" style="color: #ffffff !important;">
-                                    <span class="info-box-text" style="font-weight: 700; font-size: 1.1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block; margin-bottom: 0.5rem;">ระบบจัดการความรู้ (KM)</span>
-                                    <span class="info-box-number" style="font-weight: 600; font-size: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block;">RPP e-Learning </span>
-                                </a>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบจัดการความรู้ (KM)</h3>
+                                    <p class="service-card-description">RPP e-Learning</p>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-
-
-                    <div class="col-12 col-sm-6 col-lg-3 mb-3">
-                        <div class="info-box" style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('<?= Yii::getAlias('@web/img/authen.jpg') ?>') center / cover no-repeat; color:#ffffff; -webkit-text-stroke: 0.3px #000; text-shadow: 1px 1px 2px #000, -1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;">
-                        <span class="info-box-icon bg-success elevation-1">
-                        <a href="https://authen.rpphosp.go.th:1003/login?0009cd366581f1cb/" target="_blank" class="d-block text-white text-decoration-none">
-                            <i class="fas fa-wifi"></i>
                         </a>
-                            </span>
-                            <div class="info-box-content" style="position: relative; z-index: 1;">
-                                <a href="https://authen.rpphosp.go.th:1003/login?0009cd366581f1cb/" target="_blank" class="text-decoration-none" style="color: #ffffff !important;">
-                                    <span class="info-box-text" style="font-weight: 700; font-size: 1.1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block; margin-bottom: 0.5rem;">ใช้งาน Internet </span>
-                                    <span class="info-box-number" style="font-weight: 600; font-size: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block;">login-Logout Internet</span>
-                                </a>
-                            </div>
-                        </div>
                     </div>
 
 
-                    <div class="col-12 col-sm-6 col-lg-3 mb-3">
-                        <div class="info-box" style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('<?= Yii::getAlias('@web/img/intra.jpg') ?>') center / cover no-repeat; color:#ffffff; -webkit-text-stroke: 0.3px #000; text-shadow: 1px 1px 2px #000, -1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;">
-                            <span class="info-box-icon elevation-1" style="background-color: #0f5132 !important;">
-                                <a href="https://intranet.rpphosp.go.th/" target="_blank" class="d-block text-white text-decoration-none">
+                    <div class="service-card card-border-green">
+                        <a href="https://authen.rpphosp.go.th:1003/login?0009cd366581f1cb/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(56, 142, 60, 0.3)), url('<?= Yii::getAlias('@web/img/authen.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-green">
+                                    <i class="fas fa-wifi"></i>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ใช้งาน Internet</h3>
+                                    <p class="service-card-description">login-Logout Internet</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+
+                    <div class="service-card card-border-dark-green">
+                        <a href="https://intranet.rpphosp.go.th/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(15, 81, 50, 0.3), rgba(10, 61, 38, 0.3)), url('<?= Yii::getAlias('@web/img/intra.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-dark-green">
                                     <i class="fas fa-globe"></i>
-                                </a>
-                            </span>
-                            <div class="info-box-content" style="position: relative; z-index: 1;">
-                                <a href="https://intranet.rpphosp.go.th/" target="_blank" class="text-decoration-none" style="color: #ffffff !important;">
-                                    <span class="info-box-text" style="font-weight: 700; font-size: 1.1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block; margin-bottom: 0.5rem;">ระบบภายในโรงพยาบาล</span>
-                                    <span class="info-box-number" style="font-weight: 600; font-size: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block;">INTRANET</span>
-                                </a>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบภายในโรงพยาบาล</h3>
+                                    <p class="service-card-description">INTRANET</p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
-                    <div class="col-12 col-sm-6 col-lg-3 mb-3">
-                        <div class="info-box" style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('<?= Yii::getAlias('@web/img/web.jpg') ?>') center / cover no-repeat; color:#ffffff; -webkit-text-stroke: 0.3px #000; text-shadow: 1px 1px 2px #000, -1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;">
-                            <span class="info-box-icon bg-danger elevation-1">
-                                <a href="https://www.rpphosp.go.th/" target="_blank" class="d-block text-white text-decoration-none">
+                    <div class="service-card card-border-red">
+                        <a href="https://www.rpphosp.go.th/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(198, 40, 40, 0.3)), url('<?= Yii::getAlias('@web/img/web.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-red">
                                     <i class="fas fa-hospital"></i>
-                                </a>
-                            </span>
-                            <div class="info-box-content" style="position: relative; z-index: 1;">
-                                <a href="https://www.rpphosp.go.th/" target="_blank" class="text-decoration-none" style="color: #ffffff !important;">
-                                    <span class="info-box-text" style="font-weight: 700; font-size: 1.1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block; margin-bottom: 0.5rem;">เว็บไซต์โรงพยาบาล</span>
-                                    <span class="info-box-number" style="font-weight: 600; font-size: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block;">ไปที่เว็บไซต์</span>
-                                </a>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">เว็บไซต์โรงพยาบาล</h3>
+                                    <p class="service-card-description">ไปที่เว็บไซต์</p>
+                                </div>
                             </div>
-                        </div>
+                        </a>
                     </div>  
-                       <?php if ($isAdmin): ?>
-                    <div class="col-12 col-sm-6 col-lg-3 mb-3">
-                        <div class="info-box" style="background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('<?= Yii::getAlias('@web/img/equipment.jpg') ?>') center / cover no-repeat; color:#ffffff; -webkit-text-stroke: 0.3px #000; text-shadow: 1px 1px 2px #000, -1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;">
-                            <span class="info-box-icon bg-warning elevation-1">
-                                <a href="https://www.rpphosp.go.th/" target="_blank" class="d-block text-white text-decoration-none">
-                                    <i class="fas fa-laptop" style="color: #ffffff; -webkit-text-stroke: 2px #000000; text-shadow: 0 0 0 #000000;"></i>
-                                </a>
-                            </span>
-                       
-                            <div class="info-box-content" style="position: relative; z-index: 1;">
-                                <a href="http://equipment.rpphosp.go.th/ " target="_blank" class="text-decoration-none" style="color: #ffffff !important;">
-                                    <span class="info-box-text" style="font-weight: 700; font-size: 1.1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block; margin-bottom: 0.5rem;">ทะเบียนอุปกรณ์ IT</span>
-                                    <span class="info-box-number" style="font-weight: 600; font-size: 1rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -2px -2px 4px rgba(0,0,0,0.8), 2px -2px 4px rgba(0,0,0,0.8), -2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9); display: block;">Equipment </span>
-                                </a>
+                    <?php if ($isAdmin): ?>
+                    <div class="service-card card-border-orange">
+                        <a href="http://equipment.rpphosp.go.th/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(245, 124, 0, 0.3)), url('<?= Yii::getAlias('@web/img/equipment.jpg') ?>') center / cover no-repeat;">
                             </div>
-                        
-                        </div>
-                    </div>  
-                      <?php endif; ?>
-                      <?php if ($isAdmin): ?>
-                    <div class="col-12 col-sm-6 col-lg-3 mb-3">
-                        <div class="info-box" style="background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('<?= Yii::getAlias('@web/img/monitor.jpg') ?>') center / cover no-repeat; color:#ffffff; -webkit-text-stroke: 0.3px #000; text-shadow: 1px 1px 2px #000, -1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;">
-                            <span class="info-box-icon bg-warning elevation-1" style="background-color:rgb(91, 135, 228) !important;">
-                                <a href="https://www.rpphosp.go.th/" target="_blank" class="d-block text-white text-decoration-none">
-                                    <i class="fas fa-server" style="color: #ffffff; -webkit-text-stroke: 2px #000000; text-shadow: 0 0 0 #000000;"></i>
-                                </a>
-                            </span>
-                       
-                            <div class="info-box-content">
-                                <a href="http://intranet2.rpphosp.go.th/monitor/" target="_blank" class="text-decoration-none">
-                                    <span class="info-box-text">ตรวจสอบสถานะ Server/Switch</span>
-                                    <span class="info-box-number">Monitor </span>
-                                </a>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-orange">
+                                    <i class="fas fa-laptop"></i>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ทะเบียนอุปกรณ์ IT</h3>
+                                    <p class="service-card-description">Equipment</p>
+                                </div>
                             </div>
-                        
-                        </div>
-                    </div>  
-                      <?php endif; ?>
-
-
-                    <div class="col-12 col-sm-6 col-lg-3 mb-3">
-                        <div class="info-box" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('<?= Yii::getAlias('@web/img/gtw-backoffice.jpg') ?>') center / cover no-repeat; color:#ffffff; -webkit-text-stroke: 0.3px #000; text-shadow: 1px 1px 2px #000, -1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;">
-                            <span class="info-box-icon elevation-1" style="background-color:rgb(27, 84, 207) !important;">
-                                <a href="https://www.rpphosp.go.th/" target="_blank" class="d-block text-white text-decoration-none">
+                        </a>
+                    </div>
+                    <div class="service-card card-border-blue-light">
+                        <a href="http://intranet2.rpphosp.go.th/monitor/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(91, 135, 228, 0.3), rgba(66, 103, 178, 0.3)), url('<?= Yii::getAlias('@web/img/monitor.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-blue-light">
+                                    <i class="fas fa-server"></i>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ตรวจสอบสถานะ Server/Switch</h3>
+                                    <p class="service-card-description">Monitor</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <?php endif; ?>
+                    <div class="service-card card-border-indigo">
+                        <a href="https://14641.gtwoffice.com/login" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(27, 84, 207, 0.3), rgba(20, 63, 155, 0.3)), url('<?= Yii::getAlias('@web/img/gtw-backoffice.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-indigo">
                                     <i class="fas fa-columns"></i>
-                                </a>
-                            </span>
-                       
-                            <div class="info-box-content">
-                                <a href="https://14641.gtwoffice.com/login " target="_blank" class="text-decoration-none">
-                                    <span class="info-box-text">ระบบ GTW BACKOffice</span>
-                                    <span class="info-box-number">GTW BACKOffice </span>
-                                </a>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบ GTW BACKOffice</h3>
+                                    <p class="service-card-description">GTW BACKOffice</p>
+                                </div>
                             </div>
-                        
-                        </div>
-                    </div> 
-                    <div class="col-12 col-sm-6 col-lg-3 mb-3">
-                        <div class="info-box" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('<?= Yii::getAlias('@web/img/inventory.jpg') ?>') center / cover no-repeat; color:#ffffff; -webkit-text-stroke: 0.3px #000; text-shadow: 1px 1px 2px #000, -1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;">
-                            <span class="info-box-icon elevation-1" style="background-color:rgb(152, 199, 98) !important;">
-                                <a href="https://www.rpphosp.go.th/" target="_blank" class="d-block text-white text-decoration-none">
+                        </a>
+                    </div>
+                    <div class="service-card card-border-lime">
+                        <a href="https://inventory.rpphosp.go.th/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(152, 199, 98, 0.3), rgba(124, 179, 66, 0.3)), url('<?= Yii::getAlias('@web/img/inventory.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-lime">
                                     <i class="fas fa-store"></i>
-                                </a>
-                            </span>
-                       
-                            <div class="info-box-content">
-                                <a href="https://inventory.rpphosp.go.th/ " target="_blank" class="text-decoration-none">
-                                    <span class="info-box-text">ระบบ OneStore</span>
-                                    <span class="info-box-number">INVENTORY </span>
-                                </a>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบ OneStore</h3>
+                                    <p class="service-card-description">INVENTORY</p>
+                                </div>
                             </div>
-                        
-                        </div>
-                    </div> 
-                    <div class="col-12 col-sm-6 col-lg-3 mb-3">
-                        <div class="info-box" style="background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('<?= Yii::getAlias('@web/img/services.jpg') ?>') center / cover no-repeat; color:#ffffff; -webkit-text-stroke: 0.3px #000; text-shadow: 1px 1px 2px #000, -1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;">
-                            <span class="info-box-icon elevation-1" style="background-color:rgb(177, 10, 10) !important;">
-                                <a href="https://www.rpphosp.go.th/" target="_blank" class="d-block text-white text-decoration-none">
+                        </a>
+                    </div>
+                    <div class="service-card card-border-dark-red">
+                        <a href="https://services.rpphosp.go.th/auth" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(177, 10, 10, 0.3), rgba(139, 8, 8, 0.3)), url('<?= Yii::getAlias('@web/img/services.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-dark-red">
                                     <i class="fas fa-tools"></i>
-                                </a>
-                            </span>
-                       
-                            <div class="info-box-content">
-                                <a href="https://services.rpphosp.go.th/auth " target="_blank" class="text-decoration-none">
-                                    <span class="info-box-text">ระบบแจ้งซ่อมช่าง</span>
-                                    <span class="info-box-number">RPP Services </span>
-                                </a>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบแจ้งซ่อมช่าง</h3>
+                                    <p class="service-card-description">RPP Services</p>
+                                </div>
                             </div>
-                        
-                        </div>
-                    </div> 
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
