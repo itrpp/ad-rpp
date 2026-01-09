@@ -212,7 +212,7 @@ $this->registerCssFile('@web/css/site-index.css');
                 <h2 class="section-title">
                     <i class="fas fa-sitemap"></i> ระบบงานที่เกี่ยวข้องในโรงพยาบาล
                 </h2>
-                <p class="section-subtitle">เข้าถึงระบบต่างๆ ของโรงพยาบาลได้ที่นี่.</p>
+                <p class="section-subtitle">เข้าถึงระบบต่างๆ ของโรงพยาบาลได้ที่นี่..</p>
             </div>
             <div class="services-grid">
                     <div class="service-card card-border-blue">
