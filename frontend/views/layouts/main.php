@@ -313,7 +313,7 @@ if (!Yii::$app->user->isGuest) {
         <!-- Brand Logo -->
         <a href="<?= Yii::$app->homeUrl ?>" class="brand-link">
             <img src="<?= Yii::getAlias('@web/img/logo.png') ?>" alt="<?= Html::encode(Yii::$app->name) ?>" class="brand-image elevation-2" style="opacity:.95">
-            <span class="brand-text font-weight-light ms-1">ระบบจัดการผู้ใช้งาน</span>
+            <span class="brand-text font-weight-light ms-1">ระบบจัดการผู้ใช้งาน.</span>
         </a>
 
         <!-- Sidebar -->
