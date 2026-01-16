@@ -56,15 +56,9 @@ class PermissionManager
     
     /**
      * LDAP Superuser Groups Configuration
-     * Support multiple container names for flexibility
+     * Only users who are members of group with CN=manage Ad_user are considered superusers
      */
-    const SUPERUSER_GROUPS = [
-        'CN=manage Ad_user,DC=rpphosp,DC=local',
-    ];
-    // CN fallback names (match by CN only)
-    const SUPERUSER_GROUP_CNS = [
-        'manage Ad_user',
-    ];
+    const SUPERUSER_GROUP_CN = 'ManageUser';
     
     /**
      * IT OU Configuration
@@ -103,6 +97,7 @@ class PermissionManager
      */
     const ROLE_ADMIN = 'admin';
     const ROLE_SUPERUSER = 'superuser';
+    const ROLE_SUPERUSER_CN = 'ManageUser';
     const ROLE_USER = 'user';
     const ROLE_GUEST = 'guest';
     
@@ -183,27 +178,49 @@ class PermissionManager
             return false;
         }
         
-        // If memberof is empty or not set, try to refresh from LDAP
-        if (empty($userData['memberof']) || !isset($userData['memberof'])) {
-            Yii::debug("memberof is empty, attempting to refresh from LDAP");
+        // If memberof is empty, not set, or not a valid array, try to refresh from LDAP
+        $memberof = $userData['memberof'] ?? [];
+        $needsRefresh = false;
+        
+        if (empty($memberof) || !isset($memberof) || !is_array($memberof)) {
+            $needsRefresh = true;
+        } else {
+            // Check if memberof is a valid array (not just empty array or only has 'count' key)
+            $validKeys = array_filter(array_keys($memberof), function($key) {
+                return $key !== 'count' && $key !== 'Count';
+            });
+            if (empty($validKeys)) {
+                $needsRefresh = true;
+            }
+        }
+        
+        if ($needsRefresh) {
+            Yii::debug("memberof is empty or invalid, attempting to refresh from LDAP for superuser check");
             $userData = $this->refreshUserLdapData();
             if (!$userData) {
-                Yii::debug("Failed to refresh user data from LDAP");
+                Yii::debug("Failed to refresh user data from LDAP for superuser check");
                 return false;
             }
         }
         
         Yii::debug("Checking superuser status for user: " . ($userData['samaccountname'] ?? 'unknown'));
         Yii::debug("User DN: " . ($userData['distinguishedname'] ?? 'not set'));
+        Yii::debug("User groups count: " . (is_array($userData['memberof'] ?? []) ? count($userData['memberof']) : 0));
         Yii::debug("User groups: " . print_r($userData['memberof'] ?? [], true));
         
+        // First check using memberof
         $result = $this->isInSuperUserGroups($userData);
+        
+        // If not found in memberof, the fallback method (checkDirectGroupMembership) 
+        // is already called inside isInSuperUserGroups()
+        
         Yii::debug("User superuser status: " . ($result ? 'true' : 'false'));
         return $result;
     }
     
     /**
      * Refresh user LDAP data from LDAP server
+     * Uses ldap_read() to get complete memberof attribute
      * 
      * @return array|null
      */
@@ -220,9 +237,13 @@ class PermissionManager
         
         try {
             $ldap = new LdapHelper();
+            $ldapConn = $ldap->getConnection();
+            
+            // First, get user DN using getUser()
             $ldapUser = $ldap->getUser($username);
             
             if (!$ldapUser) {
+                Yii::debug("User not found: $username");
                 return null;
             }
             
@@ -237,6 +258,57 @@ class PermissionManager
                 return $ldapUser[$key];
             };
             
+            $userDN = $getLdapValue('distinguishedname', '');
+            if (empty($userDN)) {
+                Yii::debug("User DN not found for: $username");
+                return null;
+            }
+            
+            // Use ldap_read() to get complete memberof attribute
+            // ldap_read() is more reliable for getting all values of multi-valued attributes
+            Yii::debug("Reading user data directly from DN: $userDN");
+            $attributes = ['memberof', 'cn', 'samaccountname', 'displayname', 'department', 
+                          'mail', 'telephonenumber', 'ou', 'distinguishedname', 
+                          'useraccountcontrol', 'whenchanged', 'whencreated'];
+            
+            $readResult = @ldap_read($ldapConn, $userDN, "(objectClass=*)", $attributes);
+            if (!$readResult) {
+                $error = ldap_error($ldapConn);
+                Yii::debug("ldap_read failed, falling back to getUser() data. Error: $error");
+                // Fallback to original method
+            } else {
+                $readEntries = ldap_get_entries($ldapConn, $readResult);
+                if ($readEntries && $readEntries['count'] > 0) {
+                    $readUser = $readEntries[0];
+                    Yii::debug("Successfully read user data with ldap_read()");
+                    // Use data from ldap_read() which has complete memberof
+                    $ldapUser = $readUser;
+                }
+            }
+            
+            // Process memberof array - remove 'count' key and ensure it's a proper array
+            $memberof = [];
+            if (isset($ldapUser['memberof']) && is_array($ldapUser['memberof'])) {
+                foreach ($ldapUser['memberof'] as $key => $value) {
+                    // Skip 'count' and 'Count' keys
+                    if ($key === 'count' || $key === 'Count') {
+                        continue;
+                    }
+                    // Handle both array and string values
+                    if (is_array($value)) {
+                        $groupValue = $value[0] ?? '';
+                        if (!empty($groupValue) && is_string($groupValue)) {
+                            $memberof[] = trim($groupValue);
+                        }
+                    } elseif (is_string($value) && !empty($value)) {
+                        $memberof[] = trim($value);
+                    }
+                }
+            }
+            
+            Yii::debug("Processed memberof count: " . count($memberof));
+            Yii::debug("Memberof groups: " . print_r($memberof, true));
+            
             $userData = [
                 'cn' => $getLdapValue('cn', $getLdapValue('displayname', '')),
                 'samaccountname' => $getLdapValue('samaccountname', $username),
@@ -245,8 +317,8 @@ class PermissionManager
                 'mail' => $getLdapValue('mail', ''),
                 'telephonenumber' => $getLdapValue('telephonenumber', ''),
                 'ou' => $getLdapValue('ou', ''),
-                'distinguishedname' => $getLdapValue('distinguishedname', ''),
-                'memberof' => isset($ldapUser['memberof']) ? (is_array($ldapUser['memberof']) ? array_slice($ldapUser['memberof'], 1) : []) : [],
+                'distinguishedname' => $getLdapValue('distinguishedname', $userDN),
+                'memberof' => $memberof,
                 'useraccountcontrol' => intval($getLdapValue('useraccountcontrol', 0)),
                 'whenchanged' => $getLdapValue('whenchanged', ''),
                 'whencreated' => $getLdapValue('whencreated', ''),
@@ -261,11 +333,12 @@ class PermissionManager
             
             // Update session with refreshed data
             Yii::$app->session->set('ldapUserData', $userData);
-            Yii::debug("Refreshed user LDAP data from server");
+            Yii::debug("Refreshed user LDAP data from server with " . count($memberof) . " groups");
             
             return $userData;
         } catch (\Exception $e) {
             Yii::error("Error refreshing user LDAP data: " . $e->getMessage());
+            Yii::error("Stack trace: " . $e->getTraceAsString());
             return null;
         }
     }
@@ -521,21 +594,28 @@ class PermissionManager
     
     /**
      * Check if user is in superuser groups
+     * Checks memberof for group with CN=manage Ad_user (any container/OU)
      * 
      * @param array $userData
      * @return bool
      */
     private function isInSuperUserGroups($userData)
     {
-        // Check memberof groups
-        $userGroups = isset($userData['memberof']) ? $userData['memberof'] : [];
+        // Check memberof groups - this is the primary method
+        if (!isset($userData['memberof'])) {
+            Yii::debug("=== Super User Check Debug ===");
+            Yii::debug("memberof not found in userData");
+            return false;
+        }
+        
+        $userGroups = $userData['memberof'];
         
         // Debug: Log all user groups for troubleshooting
         Yii::debug("=== Super User Check Debug ===");
-        Yii::debug("User groups count: " . count($userGroups));
+        Yii::debug("User groups type: " . gettype($userGroups));
+        Yii::debug("User groups count: " . (is_array($userGroups) ? count($userGroups) : 'N/A'));
         Yii::debug("User groups: " . print_r($userGroups, true));
-        Yii::debug("Superuser groups to match: " . print_r(self::SUPERUSER_GROUPS, true));
-        Yii::debug("Superuser CNs to match: " . print_r(self::SUPERUSER_GROUP_CNS, true));
+        Yii::debug("Superuser group CN to match: " . self::SUPERUSER_GROUP_CN);
         
         // Handle both array and string formats
         if (!is_array($userGroups)) {
@@ -545,6 +625,7 @@ class PermissionManager
         foreach ($userGroups as $index => $group) {
             // Skip if it's the 'count' key from LDAP array
             if ($index === 'count' || $index === 'Count') {
+                Yii::debug("Skipping count key: $index");
                 continue;
             }
             
@@ -554,6 +635,7 @@ class PermissionManager
             }
             
             if (empty($group) || !is_string($group)) {
+                Yii::debug("Skipping invalid group at index $index: " . gettype($group));
                 continue;
             }
             
@@ -561,84 +643,64 @@ class PermissionManager
             $normalizedGroup = trim($group);
             Yii::debug("Checking group: $normalizedGroup");
             
-            // Method 1: Check against full DN (exact or substring match)
-            foreach (self::SUPERUSER_GROUPS as $superGroup) {
-                $normalizedSuperGroup = trim($superGroup);
-                
-                // Exact match or substring match (case-insensitive)
-                if (stripos($normalizedGroup, $normalizedSuperGroup) !== false) {
-                    Yii::debug("✓ MATCH: User is in superuser group (full DN): $normalizedGroup matches $normalizedSuperGroup");
-                    return true;
-                }
-                
-                // Also check reverse (in case order is different)
-                if (stripos($normalizedSuperGroup, $normalizedGroup) !== false) {
-                    Yii::debug("✓ MATCH: User is in superuser group (reverse DN): $normalizedSuperGroup contains $normalizedGroup");
-                    return true;
-                }
-            }
-            
-            // Method 2: Extract and compare CN only (most flexible - handles container name differences)
-            $cn = $this->extractCnFromDn($normalizedGroup);
-            if ($cn) {
-                Yii::debug("Extracted CN from group: $cn");
-                if ($this->cnInList($cn, self::SUPERUSER_GROUP_CNS)) {
-                    Yii::debug("✓ MATCH: User is in superuser group by CN: $cn");
-                    return true;
-                }
-            }
-            
-            // Method 3: Check if group contains the CN name anywhere (very flexible)
-            // Also check with spaces removed (e.g., "manage Ad_user" vs "manageAd_user")
-            foreach (self::SUPERUSER_GROUP_CNS as $superCn) {
-                // Direct substring match
-                if (stripos($normalizedGroup, $superCn) !== false) {
-                    Yii::debug("✓ MATCH: User is in superuser group by CN substring: $normalizedGroup contains $superCn");
-                    return true;
-                }
-                // Match with spaces removed (handle "manage Ad_user" vs "manageAd_user")
-                $superCnNoSpace = str_replace(' ', '', $superCn);
-                $groupNoSpace = str_replace(' ', '', $normalizedGroup);
-                if (stripos($groupNoSpace, $superCnNoSpace) !== false) {
-                    Yii::debug("✓ MATCH: User is in superuser group by CN substring (no spaces): $groupNoSpace contains $superCnNoSpace");
+            // Extract CN from group DN
+            $cnResult = $this->extractCnFromDn($normalizedGroup);
+            // Type check: ensure $cnResult is a string before comparison
+            if ($cnResult !== null && is_string($cnResult) && $cnResult !== '') {
+                // Use explicit string variable to satisfy type checker
+                /** @var string $cnValue */
+                $cnValue = $cnResult;
+                Yii::debug("Extracted CN from group: $cnValue");
+                // Compare CN (case-insensitive)
+                $superUserCn = (string) self::SUPERUSER_GROUP_CN;
+                if (strcasecmp($cnValue, $superUserCn) === 0) {
+                    Yii::debug("✓ MATCH: User is in superuser group (CN match): $cnValue");
                     return true;
                 }
             }
         }
         
-        // Check distinguishedname for direct group membership (unlikely but possible)
-        if (isset($userData['distinguishedname'])) {
-            $dn = trim($userData['distinguishedname']);
-            Yii::debug("Checking user DN: $dn");
-            foreach (self::SUPERUSER_GROUPS as $superGroup) {
-                $normalizedSuperGroup = trim($superGroup);
-                if (stripos($dn, $normalizedSuperGroup) !== false) {
-                    Yii::debug("✓ MATCH: User DN matches superuser group: $dn contains $normalizedSuperGroup");
-                    return true;
-                }
-            }
+        // Fallback: Check group membership directly from LDAP group object
+        // This is needed because memberof attribute may not always return all groups
+        Yii::debug("No match found in memberof, trying direct group membership check...");
+        $fallbackResult = $this->checkDirectGroupMembership($userData);
+        if ($fallbackResult) {
+            Yii::debug("✓ MATCH: User is in superuser group (direct group check)");
+            return true;
         }
         
-        Yii::debug("✗ NO MATCH: User is NOT in any superuser groups");
+        Yii::debug("✗ NO MATCH: User is NOT in superuser group");
         return false;
     }
 
     /**
      * Extract CN component from a DN string
      * Handles escaped characters and spaces in CN values
+     * 
+     * @param string $dn
+     * @return string|null Returns string CN value or null if not found
      */
-    private function extractCnFromDn($dn)
+    private function extractCnFromDn($dn): ?string
     {
-        if (!is_string($dn) || $dn === '') { return null; }
+        if (!is_string($dn) || $dn === '') { 
+            return null; 
+        }
         // Find first CN=... segment
         // Match CN= followed by value (may contain escaped characters like \20 for space)
-        if (preg_match('/CN=([^,]+)/i', $dn, $matches)) {
-            $cn = trim($matches[1]);
+        if (preg_match('/CN=([^,]+)/i', $dn, $matches) && isset($matches[1])) {
+            /** @var string $cnValue */
+            $cnValue = $matches[1];
+            if (!is_string($cnValue)) {
+                return null;
+            }
+            $cn = trim($cnValue);
             // Decode LDAP escaped characters (e.g., \20 = space, \2C = comma)
             $cn = preg_replace_callback('/\\\\([0-9A-Fa-f]{2})/', function($m) {
                 return chr(hexdec($m[1]));
             }, $cn);
-            return trim($cn);
+            $result = trim($cn);
+            // Ensure result is a string
+            return is_string($result) && $result !== '' ? $result : null;
         }
         return null;
     }
@@ -874,7 +936,8 @@ class PermissionManager
     
     /**
      * Check if user's OU allows access to the system
-     * Users in rpp-register OU should not have access
+     * Superusers have access regardless of OU
+     * Users in rpp-register OU should not have access (unless they are superuser or admin)
      * 
      * @param array $ldapData
      * @return bool
@@ -887,6 +950,18 @@ class PermissionManager
         
         $dn = $ldapData['distinguishedname'];
         
+        // Superuser groups have access regardless of OU
+        if ($this->isSuperUserByData($ldapData)) {
+            Yii::debug("Superuser has access regardless of OU");
+            return true;
+        }
+        
+        // Admin groups always have access regardless of OU
+        if ($this->isLdapAdminByData($ldapData)) {
+            Yii::debug("Admin has access regardless of OU");
+            return true;
+        }
+        
         // Check if user is in restricted OU
         foreach (self::RESTRICTED_OUS as $restrictedOu) {
             if (stripos($dn, $restrictedOu) !== false) {
@@ -897,16 +972,6 @@ class PermissionManager
         
         // Users in rpp-user OU (including IT) have access
         if (stripos($dn, 'OU=rpp-user') !== false) {
-            return true;
-        }
-        
-        // Admin groups always have access regardless of OU
-        if ($this->isLdapAdminByData($ldapData)) {
-            return true;
-        }
-        
-        // Superuser groups have access
-        if ($this->isSuperUserByData($ldapData)) {
             return true;
         }
         
@@ -931,80 +996,255 @@ class PermissionManager
     
     /**
      * Check if LDAP data indicates superuser status
+     * Checks memberof for group with CN=manage Ad_user (any container/OU)
      * 
      * @param array $ldapData
      * @return bool
      */
     private function isSuperUserByData($ldapData)
     {
-        // Check memberof groups
-        if (isset($ldapData['memberof'])) {
-            $userGroups = $ldapData['memberof'];
-            
-            // Handle both array and string formats
-            if (!is_array($userGroups)) {
-                $userGroups = [$userGroups];
-            }
-            
-            foreach ($userGroups as $index => $group) {
-                // Skip if it's the 'count' key from LDAP array
-                if ($index === 'count' || $index === 'Count') {
-                    continue;
-                }
-                
-                // Handle both string and array formats
-                if (is_array($group)) {
-                    $group = isset($group[0]) ? $group[0] : '';
-                }
-                
-                if (empty($group) || !is_string($group)) {
-                    continue;
-                }
-                
-                // Normalize group DN for comparison
-                $normalizedGroup = trim($group);
-                
-                // Method 1: Check against full DN (exact or substring match)
-                foreach (self::SUPERUSER_GROUPS as $superGroup) {
-                    $normalizedSuperGroup = trim($superGroup);
-                    
-                    // Exact match or substring match (case-insensitive)
-                    if (stripos($normalizedGroup, $normalizedSuperGroup) !== false) {
-                        return true;
-                    }
-                    
-                    // Also check reverse (in case order is different)
-                    if (stripos($normalizedSuperGroup, $normalizedGroup) !== false) {
-                        return true;
-                    }
-                }
-                
-                // Method 2: Extract and compare CN only (most flexible)
-                $cn = $this->extractCnFromDn($normalizedGroup);
-                if ($cn && $this->cnInList($cn, self::SUPERUSER_GROUP_CNS)) {
-                    return true;
-                }
-                
-                // Method 3: Check if group contains the CN name anywhere (very flexible)
-                foreach (self::SUPERUSER_GROUP_CNS as $superCn) {
-                    if (stripos($normalizedGroup, $superCn) !== false) {
-                        return true;
-                    }
-                }
-            }
+        // Check memberof groups - this is the primary method
+        if (!isset($ldapData['memberof'])) {
+            return false;
         }
         
-        // Check distinguishedname for direct group membership
-        if (isset($ldapData['distinguishedname'])) {
-            $dn = trim($ldapData['distinguishedname']);
-            foreach (self::SUPERUSER_GROUPS as $superGroup) {
-                $normalizedSuperGroup = trim($superGroup);
-                if (stripos($dn, $normalizedSuperGroup) !== false) {
+        $userGroups = $ldapData['memberof'];
+        
+        // Handle both array and string formats
+        if (!is_array($userGroups)) {
+            $userGroups = [$userGroups];
+        }
+        
+        foreach ($userGroups as $index => $group) {
+            // Skip if it's the 'count' key from LDAP array
+            if ($index === 'count' || $index === 'Count') {
+                continue;
+            }
+            
+            // Handle both string and array formats
+            if (is_array($group)) {
+                $group = isset($group[0]) ? $group[0] : '';
+            }
+            
+            if (empty($group) || !is_string($group)) {
+                continue;
+            }
+            
+            // Normalize group DN for comparison
+            $normalizedGroup = trim($group);
+            
+            // Extract CN from group DN
+            $cnResult = $this->extractCnFromDn($normalizedGroup);
+            // Type check: ensure $cnResult is a string before comparison
+            if ($cnResult !== null && is_string($cnResult) && $cnResult !== '') {
+                // Use explicit string variable to satisfy type checker
+                /** @var string $cnValue */
+                $cnValue = $cnResult;
+                // Compare CN (case-insensitive)
+                $superUserCn = (string) self::SUPERUSER_GROUP_CN;
+                if (strcasecmp($cnValue, $superUserCn) === 0) {
                     return true;
                 }
             }
         }
         
         return false;
+    }
+    
+    /**
+     * Escape LDAP filter value
+     * 
+     * @param string $value
+     * @return string
+     */
+    private function escapeLdapValueForFilter($value)
+    {
+        // Escape special LDAP filter characters
+        $specialChars = ['\\', '*', '(', ')', '\0'];
+        $escaped = $value;
+        foreach ($specialChars as $char) {
+            if ($char === '\\') {
+                $escaped = str_replace('\\', '\\5c', $escaped);
+            } elseif ($char === '*') {
+                $escaped = str_replace('*', '\\2a', $escaped);
+            } elseif ($char === '(') {
+                $escaped = str_replace('(', '\\28', $escaped);
+            } elseif ($char === ')') {
+                $escaped = str_replace(')', '\\29', $escaped);
+            }
+        }
+        return $escaped;
+    }
+    
+    /**
+     * Check group membership using LDAP filter
+     * This method searches for groups where the user is a member
+     * 
+     * @param mixed $ldapConn LDAP connection resource
+     * @param string $userDN
+     * @param string $baseDn
+     * @return bool
+     */
+    private function checkGroupMembershipByFilter($ldapConn, $userDN, $baseDn)
+    {
+        try {
+            // Escape user DN for filter (escape special characters)
+            $escapedUserDN = $this->escapeLdapValueForFilter($userDN);
+            $escapedGroupCN = $this->escapeLdapValueForFilter(self::SUPERUSER_GROUP_CN);
+            
+            // Search for groups with CN=manage Ad_user that have this user as a member
+            // Filter: (&(cn=manage Ad_user)(member=userDN))
+            $filter = "(&(cn=" . $escapedGroupCN . ")(member=" . $escapedUserDN . "))";
+            
+            Yii::debug("Checking membership using filter: $filter");
+            
+            // @phpstan-ignore-next-line - LDAP connection can be resource or LDAP\Connection
+            $search = @ldap_search($ldapConn, $baseDn, $filter, ['distinguishedname', 'cn']);
+            if (!$search) {
+                // @phpstan-ignore-next-line - LDAP connection can be resource or LDAP\Connection
+                $error = ldap_error($ldapConn);
+                Yii::debug("Filter search failed: $error");
+                return false;
+            }
+            
+            // @phpstan-ignore-next-line - LDAP connection can be resource or LDAP\Connection
+            $entries = ldap_get_entries($ldapConn, $search);
+            if ($entries && $entries['count'] > 0) {
+                Yii::debug("✓ User is member of group (filter method): Found " . $entries['count'] . " matching group(s)");
+                return true;
+            }
+            
+            Yii::debug("User is not member of group (filter method)");
+            return false;
+            
+        } catch (\Exception $e) {
+            Yii::error("Error checking group membership by filter: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check group membership directly from LDAP group object
+     * This is a fallback method when memberof attribute doesn't return all groups
+     * 
+     * @param array $userData
+     * @return bool
+     */
+    private function checkDirectGroupMembership($userData)
+    {
+        try {
+            if (!isset($userData['distinguishedname']) || empty($userData['distinguishedname'])) {
+                Yii::debug("No user DN available for direct group membership check");
+                return false;
+            }
+            
+            $userDN = trim($userData['distinguishedname']);
+            $ldap = new LdapHelper();
+            $ldapConn = $ldap->getConnection();
+            
+            // Escape LDAP value for filter (escape special characters)
+            $escapedCn = $this->escapeLdapValueForFilter(self::SUPERUSER_GROUP_CN);
+            
+            // Method 1: Search for group and check members
+            $baseDn = Yii::$app->params['ldap']['base_dn'];
+            $filter = "(cn=" . $escapedCn . ")";
+            $attributes = ['distinguishedname', 'member'];
+            
+            Yii::debug("Searching for group with CN: " . self::SUPERUSER_GROUP_CN);
+            Yii::debug("Search filter: $filter");
+            Yii::debug("Base DN: $baseDn");
+            Yii::debug("User DN: $userDN");
+            
+            $search = @ldap_search($ldapConn, $baseDn, $filter, $attributes);
+            if (!$search) {
+                $error = ldap_error($ldapConn);
+                Yii::debug("Failed to search for group: $error");
+                
+                // Method 2: Try direct filter to check membership
+                Yii::debug("Trying alternative method: direct membership filter");
+                return $this->checkGroupMembershipByFilter($ldapConn, $userDN, $baseDn);
+            }
+            
+            $entries = ldap_get_entries($ldapConn, $search);
+            if (!$entries || $entries['count'] == 0) {
+                Yii::debug("Group with CN=" . self::SUPERUSER_GROUP_CN . " not found");
+                
+                // Method 2: Try direct filter to check membership
+                Yii::debug("Trying alternative method: direct membership filter");
+                return $this->checkGroupMembershipByFilter($ldapConn, $userDN, $baseDn);
+            }
+            
+            $group = $entries[0];
+            $groupDN = $group['distinguishedname'][0] ?? '';
+            Yii::debug("Found group DN: $groupDN");
+            
+            // Check if user DN is in the group's member attribute
+            // Note: For large groups, member attribute might be paginated
+            // We'll check what we can get, and if needed, use range retrieval
+            if (isset($group['member']) && is_array($group['member'])) {
+                $memberCount = isset($group['member']['count']) ? intval($group['member']['count']) : 0;
+                Yii::debug("Group has $memberCount members (from count)");
+                
+                // Check all members we have
+                foreach ($group['member'] as $key => $member) {
+                    if ($key === 'count') {
+                        continue;
+                    }
+                    
+                    $memberDN = is_array($member) ? ($member[0] ?? '') : $member;
+                    $memberDN = trim($memberDN);
+                    
+                    if (empty($memberDN)) {
+                        continue;
+                    }
+                    
+                    Yii::debug("Checking member DN: $memberDN");
+                    
+                    // Compare user DN with member DN (case-insensitive)
+                    if (strcasecmp($userDN, $memberDN) === 0) {
+                        Yii::debug("✓ User DN matches group member: $userDN");
+                        return true;
+                    }
+                }
+                
+                // If we didn't find the user and member count is large, 
+                // try reading the group directly with range retrieval
+                if ($memberCount > 0 && !isset($group['member'][0])) {
+                    Yii::debug("Group has members but not in standard format, trying direct read...");
+                    // Try reading member attribute with range
+                    $rangeAttributes = ['member;range=0-*'];
+                    $rangeRead = @ldap_read($ldapConn, $groupDN, "(objectClass=*)", $rangeAttributes);
+                    if ($rangeRead) {
+                        $rangeEntries = ldap_get_entries($ldapConn, $rangeRead);
+                        if ($rangeEntries && $rangeEntries['count'] > 0) {
+                            $rangeGroup = $rangeEntries[0];
+                            if (isset($rangeGroup['member']) && is_array($rangeGroup['member'])) {
+                                foreach ($rangeGroup['member'] as $key => $member) {
+                                    if ($key === 'count') {
+                                        continue;
+                                    }
+                                    $memberDN = is_array($member) ? ($member[0] ?? '') : $member;
+                                    $memberDN = trim($memberDN);
+                                    if (!empty($memberDN) && strcasecmp($userDN, $memberDN) === 0) {
+                                        Yii::debug("✓ User DN matches group member (range read): $userDN");
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Yii::debug("Group has no member attribute or member is not an array");
+            }
+            
+            Yii::debug("User DN not found in group members");
+            return false;
+            
+        } catch (\Exception $e) {
+            Yii::error("Error checking direct group membership: " . $e->getMessage());
+            Yii::error("Stack trace: " . $e->getTraceAsString());
+            return false;
+        }
     }
 }
