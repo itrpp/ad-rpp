@@ -9,6 +9,8 @@ use common\models\LdapUser;
 use yii\web\NotFoundHttpException;
 use common\components\LdapHelper;
 use common\components\PermissionManager;
+use yii\data\ArrayDataProvider;
+use yii\data\Pagination;
 
 class LdapuserController extends Controller
 {
@@ -868,49 +870,137 @@ class LdapuserController extends Controller
     }
 
     /**
-     * Displays the LDAP Organizational Unit structure
+     * Build deduplicated, filtered and sorted list of user entries for ou-user page.
+     * @param array $allDomainUsers
+     * @param array $ouUsers
+     * @param string|null $search Optional search term to filter by username, cn, department, mail, title
+     * @return array Array of ['ou_dn' => string, 'user' => array]
+     */
+    private function buildFinalUsersList(array $allDomainUsers, array $ouUsers, $search = null)
+    {
+        $allUsers = [];
+        if (!empty($allDomainUsers)) {
+            foreach ($allDomainUsers as $user) {
+                $userDn = $user['distinguishedname'] ?? '';
+                $ouDn = '';
+                if (preg_match('/OU=([^,]+)/', $userDn, $matches)) {
+                    $ouDn = $matches[1];
+                }
+                $allUsers[] = ['ou_dn' => $ouDn, 'user' => $user];
+            }
+        } elseif (!empty($ouUsers)) {
+            foreach ($ouUsers as $ouDn => $users) {
+                if (empty($users)) { continue; }
+                foreach ($users as $user) {
+                    $allUsers[] = ['ou_dn' => $ouDn, 'user' => $user];
+                }
+            }
+        }
+
+        $deduped = [];
+        foreach ($allUsers as $entry) {
+            $user = $entry['user'];
+            $key = strtolower($user['samaccountname'] ?? '');
+            if ($key === '') { continue; }
+
+            $userDn = $user['distinguishedname'] ?? '';
+            if (stripos($userDn, 'OU=Server') !== false) { continue; }
+            if (stripos($userDn, 'OU=rpp-computer') !== false) { continue; }
+            if (stripos($userDn, 'OU=Vichakarn') !== false) { continue; }
+            if (stripos($userDn, 'OU=Domain Controllers') !== false) { continue; }
+            if (stripos($userDn, 'OU=Login-Connection') !== false) { continue; }
+            if (stripos($userDn, 'OU=rpp-register') !== false) { continue; }
+
+            $dn = strtoupper($userDn);
+            $depth = substr_count($dn, 'OU=');
+            $dnlen = strlen($dn);
+            if (!isset($deduped[$key])) {
+                $deduped[$key] = ['entry' => $entry, 'depth' => $depth, 'dnlen' => $dnlen];
+            } else {
+                $cur = $deduped[$key];
+                if ($depth > $cur['depth'] || ($depth === $cur['depth'] && $dnlen > $cur['dnlen'])) {
+                    $deduped[$key] = ['entry' => $entry, 'depth' => $depth, 'dnlen' => $dnlen];
+                }
+            }
+        }
+
+        $finalUsers = [];
+        foreach ($deduped as $v) { $finalUsers[] = $v['entry']; }
+
+        if ($search !== null && $search !== '') {
+            $q = mb_strtolower(trim($search));
+            $finalUsers = array_filter($finalUsers, function ($entry) use ($q) {
+                $u = $entry['user'];
+                $fields = [
+                    $u['samaccountname'] ?? '',
+                    $u['cn'] ?? '',
+                    $u['displayname'] ?? '',
+                    $u['department'] ?? '',
+                    $u['mail'] ?? '',
+                    $u['title'] ?? '',
+                ];
+                foreach ($fields as $f) {
+                    $v = is_array($f) ? ($f[0] ?? '') : $f;
+                    if (mb_strpos(mb_strtolower((string)$v), $q) !== false) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            $finalUsers = array_values($finalUsers);
+        }
+
+        usort($finalUsers, function ($a, $b) {
+            $ua = $a['user'] ?? [];
+            $ub = $b['user'] ?? [];
+            $va = $ua['whenchanged'] ?? '';
+            $vb = $ub['whenchanged'] ?? '';
+            if (is_array($va)) { $va = $va[0] ?? ''; }
+            if (is_array($vb)) { $vb = $vb[0] ?? ''; }
+            $wa = preg_replace('/[^0-9]/', '', (string)$va);
+            $wb = preg_replace('/[^0-9]/', '', (string)$vb);
+            $wa = substr(str_pad($wa, 14, '0'), 0, 14);
+            $wb = substr(str_pad($wb, 14, '0'), 0, 14);
+            if ($wa === $wb) { return 0; }
+            return ($wa < $wb) ? 1 : -1;
+        });
+
+        return $finalUsers;
+    }
+
+    /**
+     * Displays the LDAP Organizational Unit structure with server-side pagination.
      * @return string
      */
     public function actionOuUser()
     {
-        // Check if user has view permission (admin or superuser with view)
         $permissionManager = new PermissionManager();
         if (!$permissionManager->hasPermission(PermissionManager::PERMISSION_LDAP_USER_VIEW)) {
             Yii::$app->session->setFlash('error', 'คุณไม่มีสิทธิ์ในการเข้าถึงหน้านี้ (ต้องมีสิทธิ์ดูข้อมูลผู้ใช้ LDAP)');
             return $this->redirect(['index']);
         }
-        
+
         $ldap = new \common\components\LdapHelper();
-        
-        // Get all OUs from the entire domain
         $allOUs = $ldap->getAllOUs();
-        
-        // Get users from all OUs in the domain
+
         $ouUsers = [];
         $allDomainUsers = [];
         $ouStats = [];
-        
+
         foreach ($allOUs as $ou) {
             try {
-                // Skip rpp-register OU - users should not be displayed in this page
                 if (stripos($ou['dn'], 'OU=rpp-register') !== false) {
-                    Yii::debug("Skipping OU: {$ou['dn']} (rpp-register OU excluded from ou-user page)");
                     continue;
                 }
-                
                 $users = $ldap->getUsersByOu($ou['dn']);
                 if (!empty($users)) {
-                    // Sort users by display name
-                    usort($users, function($a, $b) {
+                    usort($users, function ($a, $b) {
                         $nameA = isset($a['displayname'][0]) ? $a['displayname'][0] : '';
                         $nameB = isset($b['displayname'][0]) ? $b['displayname'][0] : '';
                         return strcasecmp($nameA, $nameB);
                     });
-                    
                     $ouUsers[$ou['dn']] = $users;
                     $allDomainUsers = array_merge($allDomainUsers, $users);
-                    
-                    // Collect OU statistics
                     $ouStats[] = [
                         'ou' => $ou['ou'],
                         'dn' => $ou['dn'],
@@ -925,8 +1015,27 @@ class LdapuserController extends Controller
                 continue;
             }
         }
-        
-        // Create main OU info for display
+
+        $search = Yii::$app->request->get('search', '');
+        $finalUsers = $this->buildFinalUsersList($allDomainUsers, $ouUsers, $search === '' ? null : $search);
+
+        $pageSize = (int) Yii::$app->request->get('per-page', 20);
+        $pageSize = $pageSize >= 5 && $pageSize <= 100 ? $pageSize : 20;
+
+        $pagination = new Pagination([
+            'totalCount' => count($finalUsers),
+            'pageSize' => $pageSize,
+            'pageSizeParam' => 'per-page',
+            'pageParam' => 'page',
+            'params' => array_filter(['search' => $search]),
+        ]);
+
+        $dataProvider = new ArrayDataProvider([
+            'allModels' => $finalUsers,
+            'pagination' => $pagination,
+            'sort' => false,
+        ]);
+
         $mainOu = [
             'dn' => 'All OUs',
             'ou' => 'All Users',
@@ -935,17 +1044,14 @@ class LdapuserController extends Controller
             'label' => 'Domain Users',
             'badge' => 'bg-success'
         ];
-        
-        // Get sub OUs (all OUs for display purposes)
-        $subOus = $ouStats;
-        
+
         return $this->render('ou-user', [
             'mainOu' => $mainOu,
-            'subOus' => $subOus,
+            'subOus' => $ouStats,
             'ouUsers' => $ouUsers,
-            'allDomainUsers' => $allDomainUsers,
             'ouStats' => $ouStats,
-            'pagination' => [],
+            'dataProvider' => $dataProvider,
+            'search' => $search,
             'currentUser' => $this->getCurrentUserLdapData(),
             'isAdmin' => $this->hasPermission('ou-user')
         ]);

@@ -50,7 +50,12 @@ class OuUserManager {
         if (this.clearUserSearch) {
             this.clearUserSearch.addEventListener('click', () => {
                 this.userSearch.value = '';
-                this.applySearchAndRender(1);
+                const form = document.getElementById('userSearchForm');
+                if (form && document.querySelector('.ou-users')?.getAttribute('data-server-pagination') === '1') {
+                    form.submit();
+                } else {
+                    this.applySearchAndRender(1);
+                }
                 this.userSearch.focus();
             });
         }
@@ -104,7 +109,21 @@ class OuUserManager {
     }
 
     initializePage() {
-        this.applySearchAndRender(1);
+        const container = document.querySelector('.ou-users');
+        const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
+        if (serverPagination) {
+            this.applySearch();
+            this.showAllMatchedRows();
+        } else {
+            this.applySearchAndRender(1);
+        }
+    }
+
+    showAllMatchedRows() {
+        const allRows = Array.from(document.querySelectorAll('.user-row'));
+        allRows.forEach(r => {
+            r.style.display = (r.dataset.matches !== '0') ? '' : 'none';
+        });
     }
 
     // Search and Filter Methods
@@ -325,9 +344,14 @@ class OuUserManager {
     }
 
     applySearchAndRender(page = 1) {
+        const container = document.querySelector('.ou-users');
+        const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
         this.applySearch();
-        this.renderPage(page);
-        
+        if (serverPagination) {
+            this.showAllMatchedRows();
+        } else {
+            this.renderPage(page);
+        }
         const header = document.querySelector('th.sortable[data-sort-key="row"]');
         if (header) {
             document.querySelectorAll('th.sortable').forEach(h => h.setAttribute('aria-sort', 'none'));

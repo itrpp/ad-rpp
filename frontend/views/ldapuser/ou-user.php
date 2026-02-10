@@ -2,6 +2,7 @@
 use yii\helpers\Html;
 use yii\web\ForbiddenHttpException;
 use yii\widgets\ActiveForm;
+use yii\widgets\LinkPager;
 use common\models\User;
 use yii\base\BaseObject;
 use common\components\PermissionManager;
@@ -86,101 +87,31 @@ $currentUserOu = Yii::$app->session->get('ldapUserData')['ou'] ?? 'rpp-user';
                     <i class="fas fa-globe"></i> ค้นหาผู้ใช้งานทั้งหมด
                 </h3>
                 <div class="card-tools">
-                    <div class="input-group input-group-sm" style="width: 320px;">
+                    <?php $searchValue = isset($search) ? $search : ''; ?>
+                    <form method="get" action="<?= Yii::$app->urlManager->createUrl(['ldapuser/ou-user']) ?>" class="input-group input-group-sm" style="width: 320px;" id="userSearchForm" role="search">
+                        <input type="hidden" name="page" value="1">
                         <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                        <input type="text" name="userSearch" class="form-control float-right border-start-0" id="userSearch" placeholder="Search users by name, username, email, department or title..." aria-label="Search users">
+                        <input type="text" name="search" class="form-control float-right border-start-0" id="userSearch" placeholder="Search users by name, username, email, department or title..." aria-label="Search users" value="<?= Html::encode($searchValue) ?>">
                         <button type="button" class="btn btn-outline-secondary" id="clearUserSearch" aria-label="Clear search" title="Clear">
                             <i class="fas fa-times"></i>
                         </button>
-                        <button type="button" class="btn btn-primary" id="searchButton" aria-label="Search">
+                        <button type="submit" class="btn btn-primary" id="searchButton" aria-label="Search">
                             <i class="fas fa-search"></i>
                         </button>
-                    </div>
+                    </form>
                 </div>
             </div>
             <div class="card-body">
-                                <?php 
-                $allUsers = [];
-                if (!empty($allDomainUsers) && is_array($allDomainUsers)) {
-                    // Use all domain users directly
-                    foreach ($allDomainUsers as $user) {
-                        // Extract OU information from user's DN
-                        $userDn = $user['distinguishedname'] ?? '';
-                        $ouDn = '';
-                        if (preg_match('/OU=([^,]+)/', $userDn, $matches)) {
-                            $ouDn = $matches[1];
-                        }
-                        $allUsers[] = ['ou_dn' => $ouDn, 'user' => $user];
-                    }
-                } elseif (!empty($ouUsers) && is_array($ouUsers)) {
-                    // Fallback to original method
-                    foreach ($ouUsers as $ouDn => $users) {
-                        if (empty($users)) { continue; }
-                        foreach ($users as $user) {
-                            $allUsers[] = ['ou_dn' => $ouDn, 'user' => $user];
-                        }
-                    }
-                }
-
-                // Dedupe by sAMAccountName; pick entry with deepest OU in DN, tie-break by DN length
-                // Also filter out users from Server OU
-                $deduped = [];
-                foreach ($allUsers as $entry) {
-                    $user = $entry['user'];
-                    $key = strtolower($user['samaccountname'] ?? '');
-                    if ($key === '') { continue; }
-                    
-                    // Filter out users from Server OU and IT OU
-                    $userDn = $user['distinguishedname'] ?? '';
-                    if (stripos($userDn, 'OU=Server') !== false) { continue; }
-                    if (stripos($userDn, 'OU=rpp-computer') !== false) { continue; }
-                    // if (stripos($userDn, 'OU=IT') !== false) { continue; }
-                    if (stripos($userDn, 'OU=Vichakarn') !== false) { continue; }
-                    if (stripos($userDn, 'OU=Domain Controllers') !== false) { continue; }
-                    if (stripos($userDn, 'OU=Login-Connection') !== false) { continue; }
-                    // Filter out users from rpp-register OU
-                    if (stripos($userDn, 'OU=rpp-register') !== false) { continue; }
-
-                    
-                    $dn = strtoupper($userDn);
-                    $depth = substr_count($dn, 'OU=');
-                    $dnlen = strlen($dn);
-                    if (!isset($deduped[$key])) {
-                        $deduped[$key] = ['entry' => $entry, 'depth' => $depth, 'dnlen' => $dnlen];
-                                        } else {
-                        $cur = $deduped[$key];
-                        if ($depth > $cur['depth'] || ($depth === $cur['depth'] && $dnlen > $cur['dnlen'])) {
-                            $deduped[$key] = ['entry' => $entry, 'depth' => $depth, 'dnlen' => $dnlen];
-                        }
-                    }
-                }
-                $finalUsers = [];
-                foreach ($deduped as $k => $v) { $finalUsers[] = $v['entry']; }
-                
-                // Sort by most recently updated (whenchanged) first
-                usort($finalUsers, function($a, $b) {
-                    $ua = $a['user'] ?? [];
-                    $ub = $b['user'] ?? [];
-                    $va = $ua['whenchanged'] ?? '';
-                    $vb = $ub['whenchanged'] ?? '';
-                    // Handle array values from LDAP
-                    if (is_array($va)) { $va = $va[0] ?? ''; }
-                    if (is_array($vb)) { $vb = $vb[0] ?? ''; }
-                    // Keep digits only (YYYYMMDDHHMMSS)
-                    $wa = preg_replace('/[^0-9]/', '', (string)$va);
-                    $wb = preg_replace('/[^0-9]/', '', (string)$vb);
-                    // Ensure 14-digit comparable strings; pad/truncate if necessary
-                    $wa = substr(str_pad($wa, 14, '0'), 0, 14);
-                    $wb = substr(str_pad($wb, 14, '0'), 0, 14);
-                    if ($wa === $wb) { return 0; }
-                    return ($wa < $wb) ? 1 : -1; // DESC (newest first)
-                });
+                <?php
+                $finalUsers = isset($dataProvider) ? $dataProvider->getModels() : [];
+                $totalCount = isset($dataProvider) ? $dataProvider->getTotalCount() : 0;
+                $pagination = isset($dataProvider) ? $dataProvider->getPagination() : null;
                 ?>
-                <?php if (!empty($finalUsers)): ?>
-                <div class="ou-users">
+                <?php if (!empty($finalUsers) || $totalCount > 0): ?>
+                <div class="ou-users" data-server-pagination="1" data-total-count="<?= (int)$totalCount ?>">
                     <h5 class="mb-3">
                         <i class="fas fa-users me-2"></i>Users ทั้งหมด
-                        <span class="badge badge-info ms-2" id="filteredCount" data-total="<?= count($finalUsers) ?>"><?= count($finalUsers) ?> คน</span>
+                        <span class="badge badge-info ms-2" id="filteredCount" data-total="<?= (int)$totalCount ?>"><?= (int)$totalCount ?> คน</span>
                     </h5>
                     
                     <!-- OU Filter Section -->
@@ -265,38 +196,8 @@ $currentUserOu = Yii::$app->session->get('ldapUserData')['ou'] ?? 'rpp-user';
                         </div>
                     </div>
                     <div class="table-responsive">
-                                <?php 
-                        // Build OU dropdown options from final users with hierarchical paths
-                        $uniqueOuPaths = [];
-                        foreach ($finalUsers as $entry) {
-                            $u = $entry['user'];
-                            $ouDnTmp = $entry['ou_dn'];
-                            $userDnTmp = $u['distinguishedname'] ?? $ouDnTmp;
-                            $dnPartsTmp = array_map('trim', explode(',', (string)$userDnTmp));
-                            
-                            // Extract OU path
-                            $ouPathTmp = [];
-                            foreach ($dnPartsTmp as $part) {
-                                if (stripos($part, 'OU=') === 0) {
-                                    $ouName = substr($part, 3);
-                                    $ouPathTmp[] = $ouName;
-                                }
-                            }
-                            
-                            if (!empty($ouPathTmp)) {
-                                $ouPathTmp = array_reverse($ouPathTmp); // Reverse to get parent -> child order
-                                if (count($ouPathTmp) > 1) {
-                                    $ouDisplayTmp = $ouPathTmp[0] . ' / ' . $ouPathTmp[1];
-                                } else {
-                                    $ouDisplayTmp = $ouPathTmp[0];
-                                }
-                                $uniqueOuPaths[$ouDisplayTmp] = true;
-                            } elseif (!empty($u['ou'])) {
-                                $uniqueOuPaths[$u['ou']] = true;
-                            }
-                        }
-                        $ouNameList = array_keys($uniqueOuPaths);
-                        sort($ouNameList, SORT_NATURAL | SORT_FLAG_CASE);
+                        <?php
+                        $rowOffset = $pagination ? (int)$pagination->getOffset() : 0;
                         ?>
                                 <table class="table table-bordered table-striped">
                                     <thead>
@@ -313,23 +214,27 @@ $currentUserOu = Yii::$app->session->get('ldapUserData')['ou'] ?? 'rpp-user';
                                 <tr class="filter-row">
                                     <th></th>
                                     <th>
-                                        <input id="filterUsername" type="text" class="form-control form-control-sm" placeholder="Search username">
+                                        <label for="filterUsername" class="visually-hidden">ค้นหา Username</label>
+                                        <input id="filterUsername" type="text" class="form-control form-control-sm" placeholder="Search username" aria-label="Search username">
                                     </th>
                                     <th>
-                                        <input id="filterCn" type="text" class="form-control form-control-sm" placeholder="Search CN">
+                                        <label for="filterCn" class="visually-hidden">ค้นหา CN</label>
+                                        <input id="filterCn" type="text" class="form-control form-control-sm" placeholder="Search CN" aria-label="Search CN">
                                     </th>
                                     <th>
-                                        <input id="filterDepartment" type="text" class="form-control form-control-sm" placeholder="Search department">
+                                        <label for="filterDepartment" class="visually-hidden">ค้นหาหน่วยงาน</label>
+                                        <input id="filterDepartment" type="text" class="form-control form-control-sm" placeholder="Search department" aria-label="Search department">
                                     </th>
                                     <th>
-                                        <input id="filterTitle" type="text" class="form-control form-control-sm" placeholder="Search title">
+                                        <label for="filterTitle" class="visually-hidden">ค้นหาตำแหน่ง</label>
+                                        <input id="filterTitle" type="text" class="form-control form-control-sm" placeholder="Search title" aria-label="Search title">
                                     </th>
                                     <th></th>
                                     <th></th>
                                 </tr>
                                     </thead>
                                     <tbody>
-                                <?php $counter = 1; ?>
+                                <?php $counter = $rowOffset + 1; ?>
                                 <?php foreach ($finalUsers as $entry): ?>
                                         <?php 
                                 $user = $entry['user']; 
@@ -489,9 +394,20 @@ $currentUserOu = Yii::$app->session->get('ldapUserData')['ou'] ?? 'rpp-user';
                                 </table>
                             </div>
                             <div class="table-pagination mt-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                            <div class="pagination-info" id="paginationInfo"></div>
-                            <div class="pagination-buttons" id="paginationButtons"></div>
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                    <div class="pagination-info text-muted small" id="paginationInfo">
+                                        <?php if ($pagination): ?>
+                                            แสดง <?= $rowOffset + 1 ?>–<?= min($rowOffset + $pagination->getPageSize(), $totalCount) ?> จาก <?= (int)$totalCount ?> คน
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="pagination-buttons" id="paginationButtons">
+                                        <?php if ($pagination && $pagination->getPageCount() > 1): ?>
+                                            <?= LinkPager::widget([
+                                                'pagination' => $pagination,
+                                                'options' => ['class' => 'pagination pagination-sm mb-0'],
+                                                'maxButtonCount' => 5,
+                                            ]) ?>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -530,43 +446,41 @@ $currentUserOu = Yii::$app->session->get('ldapUserData')['ou'] ?? 'rpp-user';
                     <div class="row">
                         <div class="col-md-6">
                             <div class="detail-item mb-3">
-                                <label class="text-muted mb-1">ชื่อแสดง </label>
-                                <div class="detail-value" id="modalDisplayName"></div>
+                                <span class="text-muted mb-1 d-block">ชื่อแสดง</span>
+                                <div class="detail-value" id="modalDisplayName" aria-label="ชื่อแสดง"></div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="detail-item mb-3">
-                                <label class="text-muted mb-1">อีเมล </label>
-                                <div class="detail-value" id="modalEmail"></div>
+                                <span class="text-muted mb-1 d-block">อีเมล</span>
+                                <div class="detail-value" id="modalEmail" aria-label="อีเมล"></div>
                             </div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="detail-item mb-3">
-                                <label class="text-muted mb-1">โทรศัพท์ </label>
-                                <div class="detail-value" id="modalTelephone"></div>
+                                <span class="text-muted mb-1 d-block">โทรศัพท์</span>
+                                <div class="detail-value" id="modalTelephone" aria-label="โทรศัพท์"></div>
                             </div>
                         </div>
-                           
-              
                         <div class="col-6">
                             <div class="detail-item mb-3">
-                                <label class="text-muted mb-1">ผู้ติดต่อ</label>
-                                <div class="detail-value" id="modalCompany"></div>
+                                <span class="text-muted mb-1 d-block">ผู้ติดต่อ</span>
+                                <div class="detail-value" id="modalCompany" aria-label="ผู้ติดต่อ"></div>
                             </div>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="detail-item mb-3">
-                                <label class="text-muted mb-1">เลข E-phis</label>
-                                <div class="detail-value" id="modalOffice"></div>
+                                <span class="text-muted mb-1 d-block">เลข E-phis</span>
+                                <div class="detail-value" id="modalOffice" aria-label="เลข E-phis"></div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="detail-item mb-3">
-                                <label class="text-muted mb-1">  Postalcode เลขที่บัตรประชาชน</label>
+                                <label for="modalPostalcode" class="text-muted mb-1">Postalcode เลขที่บัตรประชาชน</label>
                                 <div class="detail-value" id="modalPostalcode"></div>
                             </div>
                         </div>
@@ -574,14 +488,14 @@ $currentUserOu = Yii::$app->session->get('ldapUserData')['ou'] ?? 'rpp-user';
                     <div class="row">
                         <div class="col-md-12">
                             <div class="detail-item mb-3">
-                                <label class="text-muted mb-1">OU</label>
-                                <div class="detail-value" id="modalOu"></div>
+                                <span class="text-muted mb-1 d-block">OU</span>
+                                <div class="detail-value" id="modalOu" aria-label="OU"></div>
                             </div>
                         </div>
                         <div class="col-md-12">
                             <div class="detail-item mb-3">
-                                <label class="text-muted mb-1">รายละเอียด </label>
-                                <div class="detail-value" id="modalStreetAddress"></div>
+                                <span class="text-muted mb-1 d-block">รายละเอียด</span>
+                                <div class="detail-value" id="modalStreetAddress" aria-label="รายละเอียด"></div>
                             </div>
                         </div>
                     </div>
@@ -625,7 +539,7 @@ $currentUserOu = Yii::$app->session->get('ldapUserData')['ou'] ?? 'rpp-user';
                     <input type="text" class="form-control" id="updateDepartment" name="department" required>
                 </div>
                 <div class="mb-3">
-                    <label for="updatePosition" class="form-label">ตำแหน่ง</label>
+                    <label for="updateTitle" class="form-label">ตำแหน่ง</label>
                     <input type="text" class="form-control" id="updateTitle" name="title" required>
                 </div>
                 
