@@ -313,7 +313,7 @@ if (!Yii::$app->user->isGuest) {
         <!-- Brand Logo -->
         <a href="<?= Yii::$app->homeUrl ?>" class="brand-link">
             <img src="<?= Yii::getAlias('@web/img/logo.png') ?>" alt="<?= Html::encode(Yii::$app->name) ?>" class="brand-image elevation-2" style="opacity:.95">
-            <span class="brand-text font-weight-light ms-1">ระบบจัดการผู้ใช้งาน.</span>
+            <span class="brand-text font-weight-light ms-1">ระบบจัดการผู้ใช้งาน</span>
         </a>
 
         <!-- Sidebar -->
@@ -381,10 +381,14 @@ if (!Yii::$app->user->isGuest) {
                         <h1 class="m-0"><?= Html::encode($this->title) ?></h1>
                     </div>
                     <div class="col-sm-6">
-                        <?= Breadcrumbs::widget([
-                            'links' => isset($this->params['breadcrumbs']) ? $this->params['breadcrumbs'] : [],
-                            'options' => ['class' => 'breadcrumb float-sm-right']
-                        ]) ?>
+                        <div class="d-flex justify-content-end align-items-center gap-2">
+                            <?= Breadcrumbs::widget([
+                                'links' => isset($this->params['breadcrumbs']) ? $this->params['breadcrumbs'] : [],
+                                'options' => ['class' => 'breadcrumb float-sm-right mb-0']
+                            ]) ?>
+                            <?php $appVersion = Yii::$app->params['appVersion'] ?? '1.0.0'; ?>
+                            <span class="badge bg-secondary text-nowrap" title="เวอร์ชันระบบ">v<?= Html::encode($appVersion) ?></span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -401,18 +405,18 @@ if (!Yii::$app->user->isGuest) {
 
     <!-- Footer - Only show for logged in users -->
     <?php if (!Yii::$app->user->isGuest): ?>
-    <!-- <footer class="main-footer">
+    <footer class="main-footer py-2">
         <div class="container-fluid">
-            <div class="row">
+            <div class="row align-items-center">
                 <div class="col-md-6">
-                    <strong>&copy; <?= Html::encode(Yii::$app->name) ?> <?= date('Y') ?></strong>
+                    <small class="text-muted">&copy; <?= Html::encode(Yii::$app->name) ?> <?= date('Y') ?></small>
                 </div>
-                <div class="col-md-6 text-right">
-                    <small class="text-muted">ระบบจัดการผู้ใช้งานโรงพยาบาลราชพิพัฒน์</small>
+                <div class="col-md-6 text-md-end">
+                    <small class="text-muted">เวอร์ชัน <?= Html::encode(Yii::$app->params['appVersion'] ?? '1.0.0') ?></small>
                 </div>
             </div>
         </div>
-    </footer> -->
+    </footer>
     <?php endif; ?>
 </div>
 
