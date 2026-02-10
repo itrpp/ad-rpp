@@ -22,6 +22,7 @@ class OuUserManager {
         this.clearUserSearch = document.getElementById('clearUserSearch');
         this.ouFilter = document.getElementById('ouFilter');
         this.clearOuFilter = document.getElementById('clearOuFilter');
+        this.ouPathInput = document.getElementById('ouPath');
         
         // Pagination elements
         this.paginationInfo = document.getElementById('paginationInfo');
@@ -40,11 +41,26 @@ class OuUserManager {
     bindEvents() {
         // Search events
         if (this.userSearch) {
-            this.userSearch.addEventListener('input', () => this.applySearchAndRender(1));
+            this.userSearch.addEventListener('input', () => {
+                // เมื่อใช้ server-side pagination ให้รอให้ผู้ใช้กด Enter หรือปุ่มค้นหา
+                const container = document.querySelector('.ou-users');
+                const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
+                if (serverPagination) {
+                    return;
+                }
+                this.applySearchAndRender(1);
+            });
         }
         
         if (this.searchButton) {
-            this.searchButton.addEventListener('click', () => this.applySearchAndRender(1));
+            this.searchButton.addEventListener('click', (e) => {
+                const serverPagination = document.querySelector('.ou-users')?.getAttribute('data-server-pagination') === '1';
+                if (serverPagination) {
+                    return;
+                }
+                e.preventDefault();
+                this.applySearchAndRender(1);
+            });
         }
         
         if (this.clearUserSearch) {
@@ -62,12 +78,40 @@ class OuUserManager {
         
         // OU filter events
         if (this.ouFilter) {
-            this.ouFilter.addEventListener('change', () => this.applySearchAndRender(1));
+            this.ouFilter.addEventListener('change', () => {
+                const container = document.querySelector('.ou-users');
+                const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
+                if (serverPagination) {
+                    const form = document.getElementById('userSearchForm');
+                    if (this.ouPathInput) {
+                        const selected = this.ouFilter.options[this.ouFilter.selectedIndex];
+                        const path = selected ? (selected.getAttribute('data-path') || selected.value) : '';
+                        this.ouPathInput.value = path;
+                    }
+                    if (form) {
+                        form.submit();
+                        return;
+                    }
+                }
+                this.applySearchAndRender(1);
+            });
         }
         
         if (this.clearOuFilter) {
             this.clearOuFilter.addEventListener('click', () => {
                 this.ouFilter.value = '';
+                if (this.ouPathInput) {
+                    this.ouPathInput.value = '';
+                }
+                const container = document.querySelector('.ou-users');
+                const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
+                if (serverPagination) {
+                    const form = document.getElementById('userSearchForm');
+                    if (form) {
+                        form.submit();
+                        return;
+                    }
+                }
                 this.applySearchAndRender(1);
             });
         }
@@ -86,6 +130,18 @@ class OuUserManager {
         // Modal events
         this.bindModalEvents();
         
+        // Server-side pagination: ensure link clicks navigate (in case something blocks default)
+        const paginationButtonsEl = document.getElementById('paginationButtons');
+        if (paginationButtonsEl && document.querySelector('.ou-users')?.getAttribute('data-server-pagination') === '1') {
+            paginationButtonsEl.addEventListener('click', (e) => {
+                const link = e.target.closest('a.page-link[href]');
+                if (link && link.getAttribute('href') && link.getAttribute('href') !== '#') {
+                    e.preventDefault();
+                    window.location.href = link.getAttribute('href');
+                }
+            });
+        }
+
         // Toggle status events - handle both button clicks and switch toggles
         document.addEventListener('click', (e) => {
             if (e.target.closest('.toggle-status-btn')) {
@@ -112,11 +168,10 @@ class OuUserManager {
         const container = document.querySelector('.ou-users');
         const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
         if (serverPagination) {
-            this.applySearch();
-            this.showAllMatchedRows();
-        } else {
-            this.applySearchAndRender(1);
+            // โหมด server-side: ให้ backend จัดการค้นหา/แบ่งหน้าเอง
+            return;
         }
+        this.applySearchAndRender(1);
     }
 
     showAllMatchedRows() {
@@ -124,41 +179,72 @@ class OuUserManager {
         allRows.forEach(r => {
             r.style.display = (r.dataset.matches !== '0') ? '' : 'none';
         });
+        this.updateClientFilteredCount();
+    }
+
+    updateClientFilteredCount() {
+        const container = document.querySelector('.ou-users');
+        if (!container || container.getAttribute('data-server-pagination') !== '1') return;
+        const total = parseInt(container.getAttribute('data-total-count') || '0', 10);
+        const allRows = Array.from(document.querySelectorAll('.user-row'));
+        const visible = allRows.filter(r => r.style.display !== 'none').length;
+        const el = document.getElementById('filteredCount');
+        if (el) {
+            if (total === 0) {
+                el.textContent = '0 คน';
+            } else if (visible === allRows.length) {
+                el.textContent = total + ' คน';
+            } else {
+                el.textContent = visible + ' จาก ' + total + ' คน (ในหน้านี้)';
+            }
+            el.setAttribute('data-total', String(total));
+        }
     }
 
     // Search and Filter Methods
     applySearch() {
-        const searchTerm = this.userSearch.value.toLowerCase();
-        const selectedOu = this.ouFilter.value.toLowerCase();
-        const fUsername = (document.getElementById('filterUsername')?.value || '').toLowerCase();
-        const fCn = (document.getElementById('filterCn')?.value || '').toLowerCase();
-        const fDept = (document.getElementById('filterDepartment')?.value || '').toLowerCase();
-        const fTitle = (document.getElementById('filterTitle')?.value || '').toLowerCase();
-        const fStatus = (document.getElementById('filterStatus')?.value || '').toLowerCase();
+        const searchTerm = (this.userSearch?.value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        const selectedOu = (this.ouFilter?.value || '').trim().toLowerCase();
+        const fUsernameRaw = (document.getElementById('filterUsername')?.value || '');
+        const fCnRaw = (document.getElementById('filterCn')?.value || '');
+        const fDeptRaw = (document.getElementById('filterDepartment')?.value || '');
+        const fTitleRaw = (document.getElementById('filterTitle')?.value || '');
+        const fStatusRaw = (document.getElementById('filterStatus')?.value || '');
         
+        const norm = (s) => String(s).replace(/\s+/g, ' ').trim().toLowerCase();
+
+        const fUsername = norm(fUsernameRaw);
+        const fCn = norm(fCnRaw);
+        const fDept = norm(fDeptRaw);
+        const fTitle = norm(fTitleRaw);
+        const fStatus = norm(fStatusRaw);
+
         const allRows = Array.from(document.querySelectorAll('.user-row'));
         
         allRows.forEach(row => {
-            const username = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-            const cn = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-            const department = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
+            const username = norm(row.querySelector('td:nth-child(2)').textContent);
+            const cn = norm(row.querySelector('td:nth-child(3)').textContent);
+            const department = norm(row.querySelector('td:nth-child(4)').textContent);
             const titleCell = row.querySelector('td:nth-child(5)');
-            const title = (titleCell ? titleCell.textContent : (row.dataset.title || '')).toLowerCase();
-            const ouDn = (row.getAttribute('data-ou') || '').toLowerCase();
-            const ouName = (row.dataset.ouname || '').toLowerCase();
-            const ouPath = (row.dataset.oupath || '').toLowerCase();
-            const rowStatus = (row.dataset.status || '').toLowerCase();
+            const title = norm(titleCell ? titleCell.textContent : (row.dataset.title || ''));
+            const ouDn = norm(row.getAttribute('data-ou') || '');
+            const ouName = norm(row.dataset.ouname || '');
+            const ouPath = norm(row.dataset.oupath || '');
+            const email = norm(row.dataset.email || '');
+            const rowStatus = norm(row.dataset.status || '');
 
             const globalMatch = !searchTerm || username.includes(searchTerm) ||
+                            cn.includes(searchTerm) ||
                             department.includes(searchTerm) ||
                             title.includes(searchTerm) ||
-                               ouDn.includes(searchTerm) ||
-                               ouName.includes(searchTerm) ||
-                               ouPath.includes(searchTerm);
+                            email.includes(searchTerm) ||
+                            ouDn.includes(searchTerm) ||
+                            ouName.includes(searchTerm) ||
+                            ouPath.includes(searchTerm);
 
-            const ouMatch = !selectedOu || ouPath === selectedOu;
+            const ouMatch = !selectedOu || norm(ouPath) === norm(selectedOu) || norm(ouPath).indexOf(norm(selectedOu)) >= 0;
 
-            const colMatch = (!fUsername || username.includes(fUsername)) &&
+            const colMatch = (!fUsername || username.includes(fUsername) || cn.includes(fUsername)) &&
                              (!fCn || cn.includes(fCn)) &&
                              (!fDept || department.includes(fDept)) &&
                              (!fTitle || title.includes(fTitle)) &&
@@ -209,6 +295,8 @@ class OuUserManager {
                     return (row.dataset.cn || '').toLowerCase().trim();
                 case 'department': 
                     return (row.dataset.department || '').toLowerCase().trim();
+                case 'title': 
+                    return (row.dataset.title || '').toLowerCase().trim();
                 case 'status': 
                     return (row.dataset.status || '').toLowerCase().trim();
                 case 'whencreated': 
@@ -305,7 +393,8 @@ class OuUserManager {
 
     renderPaginationButtons(current, totalPages) {
         if (!this.paginationButtons) return;
-        
+        const serverPagination = document.querySelector('.ou-users')?.getAttribute('data-server-pagination') === '1';
+        if (serverPagination) return;
         this.paginationButtons.innerHTML = '';
         
         const makeBtn = (label, target, disabled = false, active = false) => {

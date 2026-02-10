@@ -397,7 +397,9 @@ if (!Yii::$app->user->isGuest) {
         <!-- Main content -->
         <div class="content">
             <div class="container-fluid">
-                <?= Alert::widget() ?>
+                <?= Alert::widget([
+                    'excludeTypes' => (Yii::$app->controller->id === 'ldapuser' && Yii::$app->controller->action->id === 'update') ? ['success'] : [],
+                ]) ?>
                 <?= $content ?>
             </div>
         </div>

@@ -870,6 +870,26 @@ class LdapuserController extends Controller
     }
 
     /**
+     * Get LDAP attribute value from user array (case-insensitive key, supports array value).
+     * @param array $user
+     * @param string $attr Attribute name (e.g. samaccountname, cn)
+     * @return string
+     */
+    private function getLdapAttr(array $user, $attr)
+    {
+        $attrLower = strtolower($attr);
+        foreach ($user as $k => $v) {
+            if (strtolower((string)$k) === $attrLower) {
+                if (is_array($v)) {
+                    return trim((string)($v[0] ?? ''));
+                }
+                return trim((string)$v);
+            }
+        }
+        return '';
+    }
+
+    /**
      * Build deduplicated, filtered and sorted list of user entries for ou-user page.
      * @param array $allDomainUsers
      * @param array $ouUsers
@@ -881,10 +901,14 @@ class LdapuserController extends Controller
         $allUsers = [];
         if (!empty($allDomainUsers)) {
             foreach ($allDomainUsers as $user) {
-                $userDn = $user['distinguishedname'] ?? '';
+                $userDn = $this->getLdapAttr($user, 'distinguishedname');
+                if ($userDn === '' && isset($user['distinguishedname'])) {
+                    $v = $user['distinguishedname'];
+                    $userDn = is_array($v) ? trim((string)($v[0] ?? '')) : trim((string)$v);
+                }
                 $ouDn = '';
-                if (preg_match('/OU=([^,]+)/', $userDn, $matches)) {
-                    $ouDn = $matches[1];
+                if ($userDn !== '' && preg_match('/OU=([^,]+)/', $userDn, $matches)) {
+                    $ouDn = trim($matches[1]);
                 }
                 $allUsers[] = ['ou_dn' => $ouDn, 'user' => $user];
             }
@@ -900,10 +924,10 @@ class LdapuserController extends Controller
         $deduped = [];
         foreach ($allUsers as $entry) {
             $user = $entry['user'];
-            $key = strtolower($user['samaccountname'] ?? '');
+            $key = strtolower($this->getLdapAttr($user, 'samaccountname'));
             if ($key === '') { continue; }
 
-            $userDn = $user['distinguishedname'] ?? '';
+            $userDn = $this->getLdapAttr($user, 'distinguishedname');
             if (stripos($userDn, 'OU=Server') !== false) { continue; }
             if (stripos($userDn, 'OU=rpp-computer') !== false) { continue; }
             if (stripos($userDn, 'OU=Vichakarn') !== false) { continue; }
@@ -928,26 +952,42 @@ class LdapuserController extends Controller
         foreach ($deduped as $v) { $finalUsers[] = $v['entry']; }
 
         if ($search !== null && $search !== '') {
-            $q = mb_strtolower(trim($search));
-            $finalUsers = array_filter($finalUsers, function ($entry) use ($q) {
-                $u = $entry['user'];
-                $fields = [
-                    $u['samaccountname'] ?? '',
-                    $u['cn'] ?? '',
-                    $u['displayname'] ?? '',
-                    $u['department'] ?? '',
-                    $u['mail'] ?? '',
-                    $u['title'] ?? '',
+            $q = preg_replace('/\s+/u', ' ', mb_strtolower(trim($search)));
+            if ($q !== '') {
+                $searchKeys = [
+                    'samaccountname', 'cn', 'displayname', 'givenname', 'sn',
+                    'department', 'mail', 'title', 'company', 'telephonenumber', 'ou',
+                    'physicaldeliveryofficename', 'description'
                 ];
-                foreach ($fields as $f) {
-                    $v = is_array($f) ? ($f[0] ?? '') : $f;
-                    if (mb_strpos(mb_strtolower((string)$v), $q) !== false) {
-                        return true;
+                $words = array_filter(preg_split('/\s+/u', $q));
+                if (!empty($words)) {
+                $finalUsers = array_filter($finalUsers, function ($entry) use ($words, $searchKeys) {
+                    $u = $entry['user'];
+                    $concatNorm = '';
+                    foreach ($searchKeys as $attr) {
+                        $val = $this->getLdapAttr($u, $attr);
+                        if ($val !== '') {
+                            $concatNorm .= ' ' . preg_replace('/\s+/u', ' ', mb_strtolower($val));
+                        }
                     }
+                    $dn = $this->getLdapAttr($u, 'distinguishedname');
+                    if ($dn !== '') {
+                        $concatNorm .= ' ' . preg_replace('/\s+/u', ' ', mb_strtolower($dn));
+                    }
+                    $concatNorm = trim($concatNorm);
+                    foreach ($words as $word) {
+                        if ($word === '') {
+                            continue;
+                        }
+                        if (mb_strpos($concatNorm, $word) === false) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+                $finalUsers = array_values($finalUsers);
                 }
-                return false;
-            });
-            $finalUsers = array_values($finalUsers);
+            }
         }
 
         usort($finalUsers, function ($a, $b) {
@@ -1016,18 +1056,97 @@ class LdapuserController extends Controller
             }
         }
 
-        $search = Yii::$app->request->get('search', '');
+        $search = trim((string) Yii::$app->request->get('search', ''));
         $finalUsers = $this->buildFinalUsersList($allDomainUsers, $ouUsers, $search === '' ? null : $search);
+
+        // Optional OU path filter (hierarchical text from dropdown)
+        $ouPathFilter = trim((string) Yii::$app->request->get('ou', ''));
+        if ($ouPathFilter !== '') {
+            $normFilter = mb_strtolower(preg_replace('/\s+/u', ' ', $ouPathFilter));
+            if ($normFilter !== '') {
+                $finalUsers = array_filter($finalUsers, function ($entry) use ($normFilter) {
+                    if (!is_array($entry) || !isset($entry['user'])) {
+                        return false;
+                    }
+                    /** @var array $user */
+                    $user = $entry['user'];
+                    $dn = $this->getLdapAttr($user, 'distinguishedname');
+                    if ($dn === '') {
+                        return false;
+                    }
+                    $dnParts = array_map('trim', explode(',', $dn));
+                    $ouPath = [];
+                    foreach ($dnParts as $part) {
+                        if (stripos($part, 'OU=') === 0) {
+                            $ouName = substr($part, 3);
+                            if ($ouName !== '') {
+                                $ouPath[] = $ouName;
+                            }
+                        }
+                    }
+                    if (empty($ouPath)) {
+                        return false;
+                    }
+                    $ouPathReversed = array_reverse($ouPath);
+                    $pathStr = implode(' / ', $ouPathReversed);
+                    $normPath = mb_strtolower(preg_replace('/\s+/u', ' ', $pathStr));
+                    return $normPath === $normFilter || mb_strpos($normPath, $normFilter) !== false;
+                });
+                $finalUsers = array_values($finalUsers);
+            }
+        }
+
+        // Optional OU path filter (hierarchical text from dropdown)
+        $ouPathFilter = trim((string) Yii::$app->request->get('ou', ''));
+        if ($ouPathFilter !== '') {
+            $normFilter = mb_strtolower(preg_replace('/\s+/u', ' ', $ouPathFilter));
+            if ($normFilter !== '') {
+                $finalUsers = array_filter($finalUsers, function ($entry) use ($normFilter) {
+                    if (!is_array($entry) || !isset($entry['user'])) {
+                        return false;
+                    }
+                    /** @var array $user */
+                    $user = $entry['user'];
+                    $dn = $this->getLdapAttr($user, 'distinguishedname');
+                    if ($dn === '') {
+                        return false;
+                    }
+                    $dnParts = array_map('trim', explode(',', $dn));
+                    $ouPath = [];
+                    foreach ($dnParts as $part) {
+                        if (stripos($part, 'OU=') === 0) {
+                            $ouName = substr($part, 3);
+                            if ($ouName !== '') {
+                                $ouPath[] = $ouName;
+                            }
+                        }
+                    }
+                    if (empty($ouPath)) {
+                        return false;
+                    }
+                    $ouPathReversed = array_reverse($ouPath);
+                    $pathStr = implode(' / ', $ouPathReversed);
+                    $normPath = mb_strtolower(preg_replace('/\s+/u', ' ', $pathStr));
+                    return $normPath === $normFilter || mb_strpos($normPath, $normFilter) !== false;
+                });
+                $finalUsers = array_values($finalUsers);
+            }
+        }
 
         $pageSize = (int) Yii::$app->request->get('per-page', 20);
         $pageSize = $pageSize >= 5 && $pageSize <= 100 ? $pageSize : 20;
 
+        $paginationParams = array_merge(
+            Yii::$app->request->getQueryParams(),
+            array_filter(['search' => $search])
+        );
         $pagination = new Pagination([
             'totalCount' => count($finalUsers),
             'pageSize' => $pageSize,
             'pageSizeParam' => 'per-page',
             'pageParam' => 'page',
-            'params' => array_filter(['search' => $search]),
+            'route' => 'ldapuser/ou-user',
+            'params' => $paginationParams,
         ]);
 
         $dataProvider = new ArrayDataProvider([

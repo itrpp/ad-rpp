@@ -941,10 +941,10 @@ class LdapHelper
             // Search for users in the specified OU
             $filter = "(objectClass=user)";
             $attributes = [
-                'cn', 'samaccountname', 'displayname', 'department',
+                'cn', 'samaccountname', 'displayname', 'givenname', 'sn', 'department',
                 'mail', 'useraccountcontrol', 'ou', 'distinguishedname',
-                        'whencreated', 'whenchanged', 'company', 'telephonenumber', 'title', 'personalTitle',
-                        'streetaddress', 'physicaldeliveryofficename', 'postalcode'
+                'whencreated', 'whenchanged', 'company', 'telephonenumber', 'title', 'personalTitle',
+                'streetaddress', 'physicaldeliveryofficename', 'postalcode', 'description'
             ];
             
             Yii::debug("Listing users (one-level) with filter: $filter in OU: $ouDn");
@@ -967,6 +967,8 @@ class LdapHelper
                         'cn' => $entry['cn'][0] ?? $entry['displayname'][0] ?? '',
                         'samaccountname' => $entry['samaccountname'][0] ?? '',
                         'displayname' => $entry['displayname'][0] ?? '',
+                        'givenname' => $entry['givenname'][0] ?? '',
+                        'sn' => $entry['sn'][0] ?? '',
                         'department' => $entry['department'][0] ?? '',
                         'mail' => $entry['mail'][0] ?? '',
                         'useraccountcontrol' => $entry['useraccountcontrol'][0] ?? '',
@@ -979,7 +981,8 @@ class LdapHelper
                         'title' => $entry['title'][0] ?? '',
                         'streetaddress' => $entry['streetaddress'][0] ?? '',
                         'physicaldeliveryofficename' => $entry['physicaldeliveryofficename'][0] ?? '',
-                        'postalcode' => $entry['postalcode'][0] ?? ''
+                        'postalcode' => $entry['postalcode'][0] ?? '',
+                        'description' => $entry['description'][0] ?? ''
                     ];
                 }
             }

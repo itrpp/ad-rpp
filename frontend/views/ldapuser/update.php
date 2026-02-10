@@ -87,13 +87,7 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
 <div class="ldapuser-update">
     <div class="row justify-content-center">
         <div class="col-lg-11">
-            <?php if (Yii::$app->session->hasFlash('success')): ?>
-                <div class="alert alert-success">
-                    <?= Yii::$app->session->getFlash('success') ?>
-                </div>
-            <?php endif; ?>
-
-            <!-- Success Modal -->
+            <!-- Success Modal (ใช้แจ้งเตือนอย่างเดียว ไม่แสดงแบนเนอร์ซ้ำ) -->
             <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
@@ -145,11 +139,9 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
             </div>
 
             <?php if (Yii::$app->session->hasFlash('success')): ?>
+                <?php Yii::$app->session->getFlash('success'); // consume เพื่อไม่ให้แสดงซ้ำ ?>
                 <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        var successModal = new bootstrap.Modal(document.getElementById('successModal'));
-                        successModal.show();
-                    });
+                    document.addEventListener('DOMContentLoaded', function() { showSuccessModalOnce(); });
                 </script>
             <?php endif; ?>
 
@@ -525,6 +517,16 @@ $this->registerJsFile('@web/js/user-update.js', [
 ?>
 
 <script>
+// แสดง modal อัปเดตสำเร็จแค่ครั้งเดียว (กันเด้ง 2 รอบ)
+function showSuccessModalOnce() {
+    var el = document.getElementById('successModal');
+    if (!el) return;
+    if (window._successModalShownAt && (Date.now() - window._successModalShownAt < 3000)) return;
+    window._successModalShownAt = Date.now();
+    var modal = bootstrap.Modal.getOrCreateInstance(el);
+    modal.show();
+}
+
 // Validation function to check for empty fields
 function validateForm() {
     const requiredFields = [
@@ -653,9 +655,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 console.log('Response data:', data);
                 if (data.success) {
-                    // Show success modal
-                    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-                    successModal.show();
+                    showSuccessModalOnce();
                     
                     // Update form fields with new data if provided
                     if (data.user) {

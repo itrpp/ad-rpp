@@ -199,12 +199,65 @@
 .table-pagination .pagination-buttons {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0;
 }
 
 .table-pagination .pagination-info {
     color: #6c757d;
     font-size: 0.9em;
+}
+
+/* Pagination: สวยและคลิกได้ */
+.ou-user-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    gap: 4px;
+}
+
+.ou-user-pagination .page-item {
+    display: inline-block;
+}
+
+.ou-user-pagination .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.ou-user-pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+    color: #212529;
+}
+
+.ou-user-pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+    cursor: default;
+}
+
+.ou-user-pagination .page-item.disabled .page-link {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #6c757d;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* Card Styles */

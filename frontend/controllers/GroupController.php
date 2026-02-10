@@ -884,15 +884,7 @@ class GroupController extends Controller
                     continue;
                 }
 
-                // ข้าม OU ที่เป็น sub ของ "ฝ่ายการพยาบาล" (แต่ไม่ข้าม OU หลักเอง)
-                // ตัวอย่าง DN ของ sub: OU=xxx,OU=ฝ่ายการพยาบาล,DC=...
-                // ตรวจด้วยการมี ",OU=ฝ่ายการพยาบาล," อยู่ภายใน DN
                 $dn = $ou['dn'] ?? '';
-                if (is_string($dn) && stripos($dn, ',OU=ฝ่ายการพยาบาล,') !== false) {
-                    // เป็น descendant ของ ฝ่ายการพยาบาล ให้ข้าม
-                    continue;
-                }
-                
                 $ouName = $ou['ou'] ?? '';
                 $description = $ou['description'] ?? '';
                 $label = $ouName;

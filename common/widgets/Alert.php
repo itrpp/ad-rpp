@@ -44,6 +44,11 @@ class Alert extends \yii\bootstrap5\Widget
      */
     public $closeButton = [];
 
+    /**
+     * @var array list of flash types to skip (e.g. ['success'] to not show success bar on pages that use modal).
+     * Excluded types are not removed from session so the view can still use them.
+     */
+    public $excludeTypes = [];
 
     /**
      * {@inheritdoc}
@@ -56,6 +61,9 @@ class Alert extends \yii\bootstrap5\Widget
 
         foreach ($flashes as $type => $flash) {
             if (!isset($this->alertTypes[$type])) {
+                continue;
+            }
+            if (in_array($type, $this->excludeTypes, true)) {
                 continue;
             }
 
