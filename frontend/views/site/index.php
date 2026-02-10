@@ -356,6 +356,36 @@ $this->registerCssFile('@web/css/site-index.css');
                             </div>
                         </a>
                     </div>
+                    <div class="service-card card-border-indigo">
+                        <a href="https://dormrpp.rpphosp.go.th/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(27, 84, 207, 0.3), rgba(20, 63, 155, 0.3)), url('<?= Yii::getAlias('@web/img/dorm.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-indigo">
+                                    <i class="fas fa-bed"></i>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบหอพักโรงพยาบาล</h3>
+                                    <p class="service-card-description">RPP Dormitory</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="service-card card-border-orange">
+                        <a href="https://procurement.rpphosp.go.th/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(245, 124, 0, 0.3)), url('<?= Yii::getAlias('@web/img/procurement.jpg') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-orange">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบจัดซื้อจัดจ้าง</h3>
+                                    <p class="service-card-description">RPP Procurement</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
