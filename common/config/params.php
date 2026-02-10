@@ -2,7 +2,7 @@
 return [
     'adminEmail' => 'admin@example.com',
     /** เวอร์ชันของระบบ (แสดงใน footer / เกี่ยวกับระบบ) */
-    'appVersion' => '1.0.0',
+    'appVersion' => '1.1.2',
     'supportEmail' => 'support@example.com',
     'senderEmail' => 'noreply@example.com',
     'senderName' => 'Example.com mailer',

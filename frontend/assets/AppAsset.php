@@ -19,13 +19,13 @@ class AppAsset extends AssetBundle
         'https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback',
     ];
     public $js = [
-        'https://code.jquery.com/jquery-3.6.0.min.js',
         'https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js',
         'https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js',
     ];
     public $depends = [
+        'yii\web\JqueryAsset',
         'yii\web\YiiAsset',
-        'yii\bootstrap5\BootstrapAsset',
         'yii\widgets\ActiveFormAsset',
+        'yii\bootstrap5\BootstrapAsset',
     ];
 }
