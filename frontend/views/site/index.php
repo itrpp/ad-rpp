@@ -296,7 +296,7 @@ $this->registerCssFile('@web/css/site-index.css');
                         </a>
                     </div>
                     <div class="service-card card-border-blue-light">
-                        <a href="http://intranet2.rpphosp.go.th/monitor/" target="_blank" class="service-card-link">
+                        <a href="http://monitor.rpphosp.go.th/" target="_blank" class="service-card-link">
                             <div class="service-card-image" style="background: linear-gradient(135deg, rgba(91, 135, 228, 0.3), rgba(66, 103, 178, 0.3)), url('<?= Yii::getAlias('@web/img/monitor.jpg') ?>') center / cover no-repeat;">
                             </div>
                             <div class="service-card-content">
