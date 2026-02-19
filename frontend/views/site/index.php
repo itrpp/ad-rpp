@@ -386,6 +386,51 @@ $this->registerCssFile('@web/css/site-index.css');
                             </div>
                         </a>
                     </div>
+                    <div class="service-card card-border-teal">
+                        <a href="https://portal.rpphosp.go.th/porter/stat" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(0, 150, 136, 0.3), rgba(0, 121, 107, 0.3)), url('<?= Yii::getAlias('@web/img/porter-stat.png') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-teal">
+                                    <i class="fas fa-ambulance"></i>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบเวรเปล</h3>
+                                    <p class="service-card-description">Porter / Stretcher</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="service-card card-border-cyan">
+                        <a href="https://services.rpphosp.go.th/jobs/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(0, 188, 212, 0.3), rgba(0, 151, 167, 0.3)), url('<?= Yii::getAlias('@web/img/jobs-repair.png') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-cyan">
+                                    <i class="fas fa-laptop"></i>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบแจ้งซ่อมคอม</h3>
+                                    <p class="service-card-description">IT Jobs / Repair</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="service-card card-border-purple">
+                        <a href="https://rph-mems.com/" target="_blank" class="service-card-link">
+                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(156, 39, 176, 0.3), rgba(123, 31, 162, 0.3)), url('<?= Yii::getAlias('@web/img/mems.png') ?>') center / cover no-repeat;">
+                            </div>
+                            <div class="service-card-content">
+                                <div class="service-card-icon icon-bg-purple">
+                                    <i class="fas fa-toolbox"></i>
+                                </div>
+                                <div class="service-card-text">
+                                    <h3 class="service-card-title">ระบบเครื่องมือแพทย์</h3>
+                                    <p class="service-card-description">RPH MEMS</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

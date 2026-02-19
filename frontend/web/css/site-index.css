@@ -443,6 +443,18 @@
     border-color: rgba(177, 10, 10, 0.8);
 }
 
+.service-card.card-border-teal {
+    border-color: rgba(0, 150, 136, 0.8);
+}
+
+.service-card.card-border-cyan {
+    border-color: rgba(0, 188, 212, 0.8);
+}
+
+.service-card.card-border-purple {
+    border-color: rgba(156, 39, 176, 0.8);
+}
+
 .service-card-link {
     text-decoration: none;
     color: inherit;
@@ -610,6 +622,45 @@
 
 .service-card:hover .service-card-icon.icon-bg-dark-red {
     box-shadow: 0 15px 30px rgba(177, 10, 10, 0.4);
+}
+
+.service-card-icon.icon-bg-teal {
+    background: linear-gradient(135deg, rgba(0, 150, 136, 0.95), rgba(0, 121, 107, 0.95));
+    box-shadow: 0 10px 20px rgba(0, 150, 136, 0.3);
+}
+
+.service-card-icon.icon-bg-teal i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-teal {
+    box-shadow: 0 15px 30px rgba(0, 150, 136, 0.4);
+}
+
+.service-card-icon.icon-bg-cyan {
+    background: linear-gradient(135deg, rgba(0, 188, 212, 0.95), rgba(0, 151, 167, 0.95));
+    box-shadow: 0 10px 20px rgba(0, 188, 212, 0.3);
+}
+
+.service-card-icon.icon-bg-cyan i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-cyan {
+    box-shadow: 0 15px 30px rgba(0, 188, 212, 0.4);
+}
+
+.service-card-icon.icon-bg-purple {
+    background: linear-gradient(135deg, rgba(156, 39, 176, 0.95), rgba(123, 31, 162, 0.95));
+    box-shadow: 0 10px 20px rgba(156, 39, 176, 0.3);
+}
+
+.service-card-icon.icon-bg-purple i {
+    color: #ffffff;
+}
+
+.service-card:hover .service-card-icon.icon-bg-purple {
+    box-shadow: 0 15px 30px rgba(156, 39, 176, 0.4);
 }
 
 .service-card-content {
