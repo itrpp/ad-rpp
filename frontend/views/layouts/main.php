@@ -19,7 +19,15 @@ AppAsset::register($this);
 $user = Yii::$app->user->identity;
 $permissionManager = new PermissionManager();
 $isAdmin = $permissionManager->isLdapAdmin();
+// SuperUser: from LDAP/session check, or from RBAC role (assigned at login for CN=ManageUser etc.)
 $isSuperUser = $permissionManager->isSuperUser();
+if (!$isSuperUser && !Yii::$app->user->isGuest) {
+    try {
+        $isSuperUser = Yii::$app->user->can('superuser');
+    } catch (\Throwable $e) {
+        // RBAC/DB may be unavailable (e.g. SQLite file not writable); rely on LDAP check only
+    }
+}
 $canCreateAdUsers = $permissionManager->hasPermission(PermissionManager::PERMISSION_AD_USER_CREATE);
 $canViewLdapUsers = $permissionManager->hasPermission(PermissionManager::PERMISSION_LDAP_USER_VIEW);
 

@@ -83,6 +83,19 @@ class LoginForm extends Model
                 return $userData[$key];
             };
             
+            // Build memberof list without dropping first group (skip only 'count'/'Count' keys)
+            $memberof = [];
+            if (isset($userData['memberof']) && is_array($userData['memberof'])) {
+                foreach ($userData['memberof'] as $k => $v) {
+                    if ($k === 'count' || $k === 'Count') {
+                        continue;
+                    }
+                    $dn = is_array($v) ? ($v[0] ?? '') : $v;
+                    if ($dn !== '' && is_string($dn)) {
+                        $memberof[] = trim($dn);
+                    }
+                }
+            }
             $sessionData = [
                 'cn' => $getLdapValue('cn', $getLdapValue('displayname', '')),
                 'samaccountname' => $getLdapValue('samaccountname', $this->username),
@@ -92,7 +105,7 @@ class LoginForm extends Model
                 'telephonenumber' => $getLdapValue('telephonenumber', ''),
                 'ou' => $getLdapValue('ou', ''),
                 'distinguishedname' => $getLdapValue('distinguishedname', ''),
-                'memberof' => isset($userData['memberof']) ? (is_array($userData['memberof']) ? array_slice($userData['memberof'], 1) : []) : [],
+                'memberof' => $memberof,
                 'useraccountcontrol' => $userAccountControl,
                 'whenchanged' => $getLdapValue('whenchanged', ''),
                 'whencreated' => $getLdapValue('whencreated', ''),

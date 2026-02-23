@@ -56,9 +56,13 @@ class PermissionManager
     
     /**
      * LDAP Superuser Groups Configuration
-     * Only users who are members of group with CN=manage Ad_user are considered superusers
+     * Users who are members of a group with CN = ManageUser (or "manage Ad_user" in AD) are superusers.
+     * SUPERUSER_GROUP_CN: primary CN used for backward compatibility.
+     * SUPERUSER_GROUP_CNS: all accepted CN variants (case-insensitive match).
      */
     const SUPERUSER_GROUP_CN = 'ManageUser';
+    /** @var string[] CN names that identify the superuser group (e.g. ManageUser, manage Ad_user) */
+    const SUPERUSER_GROUP_CNS = ['ManageUser', 'manage Ad_user'];
     
     /**
      * IT OU Configuration
@@ -173,33 +177,34 @@ class PermissionManager
     public function isSuperUser()
     {
         $userData = $this->getCurrentUserLdapData();
+        // If no session data or memberof missing/empty, refresh from LDAP (covers first load and stale session)
         if (!$userData) {
-            Yii::debug("No user data found in session for superuser check");
-            return false;
-        }
-        
-        // If memberof is empty, not set, or not a valid array, try to refresh from LDAP
-        $memberof = $userData['memberof'] ?? [];
-        $needsRefresh = false;
-        
-        if (empty($memberof) || !isset($memberof) || !is_array($memberof)) {
-            $needsRefresh = true;
-        } else {
-            // Check if memberof is a valid array (not just empty array or only has 'count' key)
-            $validKeys = array_filter(array_keys($memberof), function($key) {
-                return $key !== 'count' && $key !== 'Count';
-            });
-            if (empty($validKeys)) {
-                $needsRefresh = true;
-            }
-        }
-        
-        if ($needsRefresh) {
-            Yii::debug("memberof is empty or invalid, attempting to refresh from LDAP for superuser check");
+            Yii::debug("No user data in session for superuser check, refreshing from LDAP");
             $userData = $this->refreshUserLdapData();
             if (!$userData) {
-                Yii::debug("Failed to refresh user data from LDAP for superuser check");
+                Yii::debug("No user data found for superuser check");
                 return false;
+            }
+        } else {
+            $memberof = $userData['memberof'] ?? [];
+            $needsRefresh = false;
+            if (empty($memberof) || !is_array($memberof)) {
+                $needsRefresh = true;
+            } else {
+                $validKeys = array_filter(array_keys($memberof), function($key) {
+                    return $key !== 'count' && $key !== 'Count';
+                });
+                if (empty($validKeys)) {
+                    $needsRefresh = true;
+                }
+            }
+            if ($needsRefresh) {
+                Yii::debug("memberof is empty or invalid, attempting to refresh from LDAP for superuser check");
+                $userData = $this->refreshUserLdapData();
+                if (!$userData) {
+                    Yii::debug("Failed to refresh user data from LDAP for superuser check");
+                    return false;
+                }
             }
         }
         
@@ -647,13 +652,11 @@ class PermissionManager
             $cnResult = $this->extractCnFromDn($normalizedGroup);
             // Type check: ensure $cnResult is a string before comparison
             if ($cnResult !== null && is_string($cnResult) && $cnResult !== '') {
-                // Use explicit string variable to satisfy type checker
                 /** @var string $cnValue */
                 $cnValue = $cnResult;
                 Yii::debug("Extracted CN from group: $cnValue");
-                // Compare CN (case-insensitive)
-                $superUserCn = (string) self::SUPERUSER_GROUP_CN;
-                if (strcasecmp($cnValue, $superUserCn) === 0) {
+                // Match any accepted superuser group CN (case-insensitive)
+                if ($this->cnInList($cnValue, self::SUPERUSER_GROUP_CNS)) {
                     Yii::debug("✓ MATCH: User is in superuser group (CN match): $cnValue");
                     return true;
                 }
@@ -1040,9 +1043,8 @@ class PermissionManager
                 // Use explicit string variable to satisfy type checker
                 /** @var string $cnValue */
                 $cnValue = $cnResult;
-                // Compare CN (case-insensitive)
-                $superUserCn = (string) self::SUPERUSER_GROUP_CN;
-                if (strcasecmp($cnValue, $superUserCn) === 0) {
+                // Match any accepted superuser group CN (case-insensitive)
+                if ($this->cnInList($cnValue, self::SUPERUSER_GROUP_CNS)) {
                     return true;
                 }
             }
@@ -1090,11 +1092,13 @@ class PermissionManager
         try {
             // Escape user DN for filter (escape special characters)
             $escapedUserDN = $this->escapeLdapValueForFilter($userDN);
-            $escapedGroupCN = $this->escapeLdapValueForFilter(self::SUPERUSER_GROUP_CN);
-            
-            // Search for groups with CN=manage Ad_user that have this user as a member
-            // Filter: (&(cn=manage Ad_user)(member=userDN))
-            $filter = "(&(cn=" . $escapedGroupCN . ")(member=" . $escapedUserDN . "))";
+            // OR of all accepted superuser group CNs
+            $cnConditions = [];
+            foreach (self::SUPERUSER_GROUP_CNS as $cn) {
+                $cnConditions[] = '(cn=' . $this->escapeLdapValueForFilter($cn) . ')';
+            }
+            // Filter: (&(|(cn=ManageUser)(cn=manage Ad_user))(member=userDN))
+            $filter = "(&(|" . implode('', $cnConditions) . ")(member=" . $escapedUserDN . "))";
             
             Yii::debug("Checking membership using filter: $filter");
             
@@ -1142,15 +1146,18 @@ class PermissionManager
             $ldap = new LdapHelper();
             $ldapConn = $ldap->getConnection();
             
-            // Escape LDAP value for filter (escape special characters)
-            $escapedCn = $this->escapeLdapValueForFilter(self::SUPERUSER_GROUP_CN);
+            // Build OR filter for all accepted superuser group CNs (e.g. ManageUser, manage Ad_user)
+            $cnConditions = [];
+            foreach (self::SUPERUSER_GROUP_CNS as $cn) {
+                $cnConditions[] = '(cn=' . $this->escapeLdapValueForFilter($cn) . ')';
+            }
+            $filter = '(|' . implode('', $cnConditions) . ')';
             
             // Method 1: Search for group and check members
             $baseDn = Yii::$app->params['ldap']['base_dn'];
-            $filter = "(cn=" . $escapedCn . ")";
             $attributes = ['distinguishedname', 'member'];
             
-            Yii::debug("Searching for group with CN: " . self::SUPERUSER_GROUP_CN);
+            Yii::debug("Searching for superuser group with CN in: " . implode(', ', self::SUPERUSER_GROUP_CNS));
             Yii::debug("Search filter: $filter");
             Yii::debug("Base DN: $baseDn");
             Yii::debug("User DN: $userDN");
@@ -1167,7 +1174,7 @@ class PermissionManager
             
             $entries = ldap_get_entries($ldapConn, $search);
             if (!$entries || $entries['count'] == 0) {
-                Yii::debug("Group with CN=" . self::SUPERUSER_GROUP_CN . " not found");
+                Yii::debug("Superuser group (CN in " . implode(', ', self::SUPERUSER_GROUP_CNS) . ") not found");
                 
                 // Method 2: Try direct filter to check membership
                 Yii::debug("Trying alternative method: direct membership filter");
