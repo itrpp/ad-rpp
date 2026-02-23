@@ -46,7 +46,7 @@ class ResendVerificationEmailFormTest extends Unit
 
         verify($model->validate())->false();
         verify($model->hasErrors())->true();
-        verify($model->getFirstError('email'))->equals('Email cannot be blank.');
+        verify($model->getFirstError('email'))->equals('Email ห้ามเป็นค่าว่าง');
     }
 
     public function testResendToActiveUser()

@@ -205,7 +205,7 @@ $this->registerCssFile('@web/css/site-index.css');
             </div>
         </div>
 
-        <!-- Hospital Systems Section - Only show for logged in users -->
+        <!-- Hospital Systems Section - Only show for logged in users (เมนูจาก DB) -->
         <?php if (!Yii::$app->user->isGuest): ?>
         <div class="modern-services-section">
             <div class="section-header">
@@ -215,223 +215,36 @@ $this->registerCssFile('@web/css/site-index.css');
                 <p class="section-subtitle">เข้าถึงระบบต่างๆ ของโรงพยาบาลได้ที่นี่..</p>
             </div>
             <div class="services-grid">
-                    <div class="service-card card-border-blue">
-                        <a href="https://elearning.rpphosp.go.th/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(33, 150, 243, 0.3), rgba(25, 118, 210, 0.3)), url('<?= Yii::getAlias('@web/img/e-learning.jpg') ?>') center / cover no-repeat;">
-                            </div>
+                <?php
+                $serviceMenuItems = isset($serviceMenuItems) ? $serviceMenuItems : [];
+                if (!empty($serviceMenuItems)):
+                    foreach ($serviceMenuItems as $item):
+                        $target = $item->open_new_tab ? '_blank' : '_self';
+                        $imgUrl = !empty($item->image_path)
+                            ? Yii::getAlias('@web/img/' . ltrim($item->image_path, '/'))
+                            : '';
+                        $imgStyle = $imgUrl
+                            ? "background: linear-gradient(135deg, rgba(0,0,0,0.2), rgba(0,0,0,0.05)), url('" . Html::encode($imgUrl) . "') center / cover no-repeat"
+                            : "background: linear-gradient(135deg, rgba(33,150,243,0.35), rgba(25,118,210,0.35))";
+                ?>
+                    <div class="service-card <?= Html::encode($item->card_color) ?>">
+                        <a href="<?= Html::encode($item->url) ?>" target="<?= $target ?>" class="service-card-link">
+                            <div class="service-card-image" style="<?= $imgStyle ?>"></div>
                             <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-blue">
-                                    <i class="fas fa-book"></i>
+                                <div class="service-card-icon <?= Html::encode($item->icon_bg_class) ?>">
+                                    <i class="fas <?= Html::encode($item->icon) ?>"></i>
                                 </div>
                                 <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบจัดการความรู้ (KM)</h3>
-                                    <p class="service-card-description">RPP e-Learning</p>
+                                    <h3 class="service-card-title"><?= Html::encode($item->title) ?></h3>
+                                    <p class="service-card-description"><?= Html::encode($item->description) ?></p>
                                 </div>
                             </div>
                         </a>
                     </div>
-
-
-                    <div class="service-card card-border-green">
-                        <a href="https://authen.rpphosp.go.th:1003/login?0009cd366581f1cb/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(56, 142, 60, 0.3)), url('<?= Yii::getAlias('@web/img/authen.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-green">
-                                    <i class="fas fa-wifi"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ใช้งาน Internet</h3>
-                                    <p class="service-card-description">login-Logout Internet</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-
-                    <div class="service-card card-border-dark-green">
-                        <a href="https://intranet.rpphosp.go.th/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(15, 81, 50, 0.3), rgba(10, 61, 38, 0.3)), url('<?= Yii::getAlias('@web/img/intra.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-dark-green">
-                                    <i class="fas fa-globe"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบภายในโรงพยาบาล</h3>
-                                    <p class="service-card-description">INTRANET</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="service-card card-border-red">
-                        <a href="https://www.rpphosp.go.th/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(198, 40, 40, 0.3)), url('<?= Yii::getAlias('@web/img/web.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-red">
-                                    <i class="fas fa-hospital"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">เว็บไซต์โรงพยาบาล</h3>
-                                    <p class="service-card-description">ไปที่เว็บไซต์</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>  
-                    <?php if ($isAdmin): ?>
-                    <div class="service-card card-border-orange">
-                        <a href="http://equipment.rpphosp.go.th/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(245, 124, 0, 0.3)), url('<?= Yii::getAlias('@web/img/equipment.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-orange">
-                                    <i class="fas fa-laptop"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ทะเบียนอุปกรณ์ IT</h3>
-                                    <p class="service-card-description">Equipment</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="service-card card-border-blue-light">
-                        <a href="http://monitor.rpphosp.go.th/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(91, 135, 228, 0.3), rgba(66, 103, 178, 0.3)), url('<?= Yii::getAlias('@web/img/monitor.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-blue-light">
-                                    <i class="fas fa-server"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ตรวจสอบสถานะ Server/Switch</h3>
-                                    <p class="service-card-description">Monitor</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <?php endif; ?>
-                    <div class="service-card card-border-indigo">
-                        <a href="https://14641.gtwoffice.com/login" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(27, 84, 207, 0.3), rgba(20, 63, 155, 0.3)), url('<?= Yii::getAlias('@web/img/gtw-backoffice.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-indigo">
-                                    <i class="fas fa-columns"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบ GTW BACKOffice</h3>
-                                    <p class="service-card-description">GTW BACKOffice</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="service-card card-border-lime">
-                        <a href="https://inventory.rpphosp.go.th/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(152, 199, 98, 0.3), rgba(124, 179, 66, 0.3)), url('<?= Yii::getAlias('@web/img/inventory.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-lime">
-                                    <i class="fas fa-store"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบ OneStore</h3>
-                                    <p class="service-card-description">INVENTORY</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="service-card card-border-dark-red">
-                        <a href="https://services.rpphosp.go.th/auth" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(177, 10, 10, 0.3), rgba(139, 8, 8, 0.3)), url('<?= Yii::getAlias('@web/img/services.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-dark-red">
-                                    <i class="fas fa-tools"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบแจ้งซ่อมช่าง</h3>
-                                    <p class="service-card-description">RPP Services</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="service-card card-border-indigo">
-                        <a href="https://dormrpp.rpphosp.go.th/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(27, 84, 207, 0.3), rgba(20, 63, 155, 0.3)), url('<?= Yii::getAlias('@web/img/dorm.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-indigo">
-                                    <i class="fas fa-bed"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบหอพักโรงพยาบาล</h3>
-                                    <p class="service-card-description">RPP Dormitory</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="service-card card-border-orange">
-                        <a href="https://procurement.rpphosp.go.th/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(245, 124, 0, 0.3)), url('<?= Yii::getAlias('@web/img/procurement.jpg') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-orange">
-                                    <i class="fas fa-shopping-cart"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบจัดซื้อจัดจ้าง</h3>
-                                    <p class="service-card-description">RPP Procurement</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="service-card card-border-teal">
-                        <a href="https://portal.rpphosp.go.th/porter/stat" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(0, 150, 136, 0.3), rgba(0, 121, 107, 0.3)), url('<?= Yii::getAlias('@web/img/porter-stat.png') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-teal">
-                                    <i class="fas fa-ambulance"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบเวรเปล</h3>
-                                    <p class="service-card-description">Porter / Stretcher</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="service-card card-border-cyan">
-                        <a href="https://services.rpphosp.go.th/jobs/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(0, 188, 212, 0.3), rgba(0, 151, 167, 0.3)), url('<?= Yii::getAlias('@web/img/jobs-repair.png') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-cyan">
-                                    <i class="fas fa-laptop"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบแจ้งซ่อมคอม</h3>
-                                    <p class="service-card-description">IT Jobs / Repair</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="service-card card-border-purple">
-                        <a href="https://rph-mems.com/" target="_blank" class="service-card-link">
-                            <div class="service-card-image" style="background: linear-gradient(135deg, rgba(156, 39, 176, 0.3), rgba(123, 31, 162, 0.3)), url('<?= Yii::getAlias('@web/img/mems.png') ?>') center / cover no-repeat;">
-                            </div>
-                            <div class="service-card-content">
-                                <div class="service-card-icon icon-bg-purple">
-                                    <i class="fas fa-toolbox"></i>
-                                </div>
-                                <div class="service-card-text">
-                                    <h3 class="service-card-title">ระบบเครื่องมือแพทย์</h3>
-                                    <p class="service-card-description">RPH MEMS</p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                </div>
+                <?php endforeach; ?>
+                <?php else: ?>
+                    <p class="text-muted small">ยังไม่มีการตั้งค่าเมนูระบบงาน — ผู้ดูแลระบบสามารถจัดการได้ที่เมนู <strong>จัดการเมนูระบบงาน</strong></p>
+                <?php endif; ?>
             </div>
         </div>
         <?php endif; ?>

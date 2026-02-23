@@ -28,7 +28,7 @@ class VerifyEmailCest
     {
         $I->amOnRoute('site/verify-email', ['token' => '']);
         $I->canSee('Bad Request', 'h1');
-        $I->canSee('Verify email token cannot be blank.');
+        $I->canSee('Verify email token ห้ามเป็นค่าว่าง');
     }
 
     public function checkInvalidToken(FunctionalTester $I)

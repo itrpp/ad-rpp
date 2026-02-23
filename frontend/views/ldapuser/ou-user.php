@@ -312,7 +312,7 @@ $getUserAttr = function (array $user, $key) {
                                             <td><?= $highlightSearch($getUserAttr($user, 'samaccountname')) ?></td>
                                             <td><?= $highlightSearch($getUserAttr($user, 'cn')) ?></td>
                                             <td><?= $highlightSearch($getUserAttr($user, 'department')) ?></td>
-                                            <td><?= $highlightSearch($getUserAttr($user, 'title') ?: 'ยังไม่ระบ') ?></td>
+                                            <td><?= $highlightSearch($getUserAttr($user, 'title') ?: 'ยังไม่ระบุ') ?></td>
                                             <td>
                                                 <?php
                                                 // ใช้รูปแบบเดียวกับ update.php แต่เพิ่มความทนทานของรูปแบบข้อมูลจาก LDAP

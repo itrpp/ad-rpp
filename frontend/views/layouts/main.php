@@ -90,70 +90,82 @@ if (!Yii::$app->user->isGuest) {
             }
         }
         
-        /* Dropdown positioning fixes */
+        /* User dropdown - match sidebar theme (dark green) */
         .navbar-nav .dropdown-menu {
             position: absolute;
             top: 100%;
             right: 0;
             left: auto;
             z-index: 1000;
-            min-width: 200px;
-            max-width: 300px;
-            margin-top: 0.125rem;
+            min-width: 260px;
+            max-width: 320px;
+            margin-top: 0.25rem;
+            padding: 0;
+            border: 1px solid rgba(15, 81, 50, 0.2);
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        
-        /* Responsive dropdown positioning */
+        .user-dropdown-header {
+            padding: 0.875rem 1rem;
+            background: #0f5132;
+            color: #fff;
+            border-radius: 0.375rem 0.375rem 0 0;
+        }
+        .user-dropdown-header .user-name {
+            font-weight: 600;
+            font-size: 0.9375rem;
+            margin-bottom: 0.15rem;
+        }
+        .user-dropdown-header .user-dept {
+            font-size: 0.8125rem;
+            opacity: 0.92;
+        }
+        .user-dropdown-header .user-role {
+            margin-top: 0.35rem;
+            font-size: 0.7rem;
+        }
+        .user-dropdown-header .user-role .badge {
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+        }
+        .user-dropdown-header .badge.bg-success { background-color: rgba(255,255,255,0.95) !important; color: #0f5132 !important; }
+        .user-dropdown-header .badge.bg-secondary { background-color: rgba(255,255,255,0.9) !important; color: #495057 !important; }
+        .user-dropdown-header .badge.bg-light { background-color: rgba(255,255,255,0.85) !important; color: #212529 !important; }
+        .user-dropdown-body .dropdown-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .user-dropdown-body .dropdown-item i {
+            width: 1.25rem;
+            margin-right: 0.5rem;
+            opacity: 0.85;
+        }
+        .navbar-nav .dropdown-menu .dropdown-item:hover,
+        .navbar-nav .dropdown-menu .dropdown-item:focus {
+            background-color: rgba(15, 81, 50, 0.12);
+            color: #0f5132;
+        }
+        .navbar-nav .dropdown-menu .logout-item:hover,
+        .navbar-nav .dropdown-menu .logout-item:focus {
+            background-color: rgba(200, 35, 47, 0.1);
+            color: #c82333;
+        }
+        .navbar-nav .dropdown-menu .dropdown-divider {
+            margin: 0;
+            border-color: #eee;
+        }
         @media (max-width: 768px) {
             .navbar-nav .dropdown-menu {
                 right: 0;
                 left: auto;
                 max-width: calc(100vw - 2rem);
-                transform: translateX(0);
             }
         }
-        
-        /* Ensure dropdown doesn't overflow on small screens */
         @media (max-width: 576px) {
             .navbar-nav .dropdown-menu {
-                right: 0;
-                left: auto;
                 max-width: calc(100vw - 1rem);
                 margin-right: 0.5rem;
             }
-        }
-        
-        /* Text truncation for long names */
-        .dropdown-header .text-truncate {
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        /* Dropdown menu items hover effect - green highlight */
-        .dropdown-menu .dropdown-item:hover,
-        .dropdown-menu .dropdown-item:focus {
-            background-color: #28a745 !important;
-            color: #ffffff !important;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-        
-        .dropdown-menu .dropdown-item:hover i,
-        .dropdown-menu .dropdown-item:focus i {
-            color: #ffffff !important;
-        }
-        
-        /* Logout button hover effect - orange highlight */
-        .dropdown-menu .logout-item:hover,
-        .dropdown-menu .logout-item:focus {
-            background-color: #fd7e14 !important;
-            color: #ffffff !important;
-            transition: background-color 0.2s ease, color 0.2s ease;
-        }
-        
-        .dropdown-menu .logout-item:hover i,
-        .dropdown-menu .logout-item:focus i {
-            color: #ffffff !important;
         }
 
         /* Sidebar theming - dark green */
@@ -223,92 +235,30 @@ if (!Yii::$app->user->isGuest) {
                         ]
                     );
                     ?>
-                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-end" style="min-width: 320px; max-width: 420px; padding: 0;">
-                        <!-- User Header Section -->
-                        <div class="dropdown-header text-center" style="padding: 1rem 1.25rem; background: linear-gradient(135deg,rgb(7, 75, 35) 0%,rgb(42, 82, 47) 100%); color: #ffffff; border-radius: 0.375rem 0.375rem 0 0;">
-                            <div class="mb-2">
-                                <i class="fas fa-user-circle" style="font-size: 3rem; color: rgba(255,255,255,0.9);"></i>
-                            </div>
-                            <div class="text-truncate fw-bold" style="font-size: 1rem; margin-bottom: 0.25rem;" title="<?= Html::encode($user->cn) ?>">
-                                <?= Html::encode($user->cn) ?>
-                            </div>
-                            <div class="text-truncate" style="font-size: 0.85rem; opacity: 0.9;" title="<?= Html::encode($user->department) ?>">
-                                <?= Html::encode($user->department) ?>
-                            </div>
-                        </div>
-                        
-                        <!-- Permission Section -->
-                        <?php if ($currentUserOu != 'rpp-register'): ?>
-                        <div class="px-3 py-3" style="background-color: #f8f9fa; border-left: 4px solid #007bff; margin: 0.5rem 0.75rem; border-radius: 0.375rem;">
-                       
-                            
-                            <!-- Status Badge -->
-                            <div style="font-size: 0.875rem; color: #495057; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
-                                <span style="font-weight: 600; color: #007bff;"><i class="fas fa-user-shield me-2"></i>สิทธิ์:</span>
+                    <div class="dropdown-menu dropdown-menu-end user-dropdown-menu">
+                        <div class="user-dropdown-header">
+                            <div class="user-name text-truncate" title="<?= Html::encode($user->cn) ?>"><?= Html::encode($user->cn) ?></div>
+                            <div class="user-dept text-truncate" title="<?= Html::encode($user->department) ?>"><?= Html::encode($user->department ?: '—') ?></div>
+                            <?php if ($currentUserOu != 'rpp-register'): ?>
+                            <div class="user-role">
                                 <?php if ($isAdmin): ?>
-                                    <span class="badge" style="font-size: 0.8rem; padding: 0.4rem 0.75rem; background-color: #28a745; color: #ffffff; border-radius: 0.25rem;">ผู้ดูแลระบบ</span>
+                                    <span class="badge bg-success">ผู้ดูแลระบบ</span>
                                 <?php elseif ($isSuperUser): ?>
-                                    <span class="badge" style="font-size: 0.8rem; padding: 0.4rem 0.75rem; background-color: #9b59b6; color: #ffffff; border-radius: 0.25rem;">Superuser</span>
+                                    <span class="badge bg-secondary">Superuser</span>
                                 <?php else: ?>
-                                    <span class="badge" style="font-size: 0.8rem; padding: 0.4rem 0.75rem; background-color: #17a2b8; color: #ffffff; border-radius: 0.25rem;">ผู้ใช้ทั่วไป</span>
+                                    <span class="badge bg-light text-dark">ผู้ใช้ทั่วไป</span>
                                 <?php endif; ?>
                             </div>
-                            
-                            <!-- Access Permissions -->
-                            <div style="font-size: 0.85rem; color: #495057; line-height: 1.6;">
-                                <div style="margin-bottom: 0.5rem; font-weight: 600; color: #2c3e50;">ระบบที่สามารถเข้าถึง</div>
-                                <div style="padding-left: 0.5rem;">
-                                    <?php
-                                    $programs = ['KM', 'Pacs', 'Service ช่าง', 'internet/WiFi', 'e-phis'];
-                                    $program_colors = [
-                                        'KM' => '#3498db',
-                                        'Pacs' => '#9b59b6',
-                                        'Service ช่าง' => '#e67e22',
-                                        'internet/WiFi' => '#16a085',
-                                        'e-phis' => '#c0392b'
-                                    ];
-                                    $program_badges = '';
-                                    foreach ($programs as $program) {
-                                        $color = $program_colors[$program] ?? '#6c757d';
-                                        $program_badges .= '<span class="badge me-1 mb-1" style="font-size: 0.75rem; padding: 0.35rem 0.6rem; background-color: ' . $color . '; color: #ffffff; border-radius: 0.25rem; display: inline-block;">' . $program . '</span>';
-                                    }
-                                    $e_phisnote = '<div class="mt-2 p-2" style="background-color: #fff3cd; border-left: 3px solid #dc3545; border-radius: 0.25rem;"><small style="color: #dc3545; font-weight: 500; line-height: 1.5;">*ยกเว้นระบบ e-phis ใช้ User จากระบบนี้ แล้วใช้รหัสผ่านเริ่มต้น(1234)จากนั้นสามารถแก้รหัสผ่านระบบ e-phis*</small></div>';
-                                    $permissions = [];
-                                    if ($isAdmin) {
-                                        $permissions[] = '<div style="margin-bottom: 0.6rem;"><span style="color: #27ae60; font-weight: 600;">✓ การจัดการในระบบนี้ทั้งหมด</span></div>';
-                                        $permissions[] = '<div style="margin-bottom: 0.4rem; line-height: 1.8;">' . $program_badges . '</div>';
-                                    } elseif ($isSuperUser) {
-                                        $permissions[] = '<div style="margin-bottom: 0.6rem;"><span style="color: #3498db; font-weight: 600;">✓ View ผู้ใช้งานในระบบ AD</span></div>';
-                                        $permissions[] = '<div style="margin-bottom: 0.6rem;"><span style="color: #9b59b6; font-weight: 600;">✓ เป็น Superuser</span></div>';
-                                        $permissions[] = '<div style="margin-bottom: 0.4rem; line-height: 1.8;">' . $program_badges . '</div>';
-                                    } else {
-                                        $permissions[] = '<div style="margin-bottom: 0.4rem; line-height: 1.8;">' . $program_badges . '</div>';
-                                    }
-                                    echo implode('', $permissions);
-                                    echo $e_phisnote;
-                                    ?>
-                                </div>
-                            </div>
+                            <?php endif; ?>
                         </div>
-                        <div class="dropdown-divider" style="margin: 0.5rem 0;"></div>
-                        <?php endif; ?>
-                        
-                        <!-- Menu Items -->
-                        <div style="padding: 0.25rem 0;">
-                            <?= Html::a('<i class="fas fa-user me-2" style="width: 20px;"></i>Profile', ['/site/profile'], ['class' => 'dropdown-item', 'style' => 'padding: 0.65rem 1.25rem;']) ?>
-                            <?= Html::a('<i class="fas fa-key me-2" style="width: 20px;"></i>Change Password', ['/site/change-password'], ['class' => 'dropdown-item', 'style' => 'padding: 0.65rem 1.25rem;']) ?>
-                        </div>
-                        
-                        <div class="dropdown-divider" style="margin: 0.5rem 0;"></div>
-                        
-                        <!-- Logout -->
-                        <div style="padding: 0.25rem 0;">
-                            <?= Html::beginForm(['/site/logout'], 'post', ['class' => 'd-flex', 'style' => 'margin: 0;'])
-                                . Html::submitButton(
-                                    '<i class="fas fa-sign-out-alt me-2" style="width: 20px;"></i>Logout',
-                                    ['class' => 'dropdown-item logout-item', 'style' => 'padding: 0.65rem 1.25rem; width: 100%; text-align: left; border: none; background: none; color: #212529;']
-                                )
-                                . Html::endForm() ?>
+                        <div class="dropdown-divider"></div>
+                        <div class="user-dropdown-body">
+                            <?= Html::a('<i class="fas fa-user"></i>Profile', ['/site/profile'], ['class' => 'dropdown-item']) ?>
+                            <?= Html::a('<i class="fas fa-key"></i>Change Password', ['/site/change-password'], ['class' => 'dropdown-item']) ?>
+                            <div class="dropdown-divider"></div>
+                            <?= Html::beginForm(['/site/logout'], 'post', ['class' => 'mb-0']) ?>
+                                <?= Html::submitButton('<i class="fas fa-sign-out-alt"></i>Logout', ['class' => 'dropdown-item logout-item border-0 bg-transparent w-100 text-start']) ?>
+                            <?= Html::endForm() ?>
                         </div>
                     </div>
                 </li>
@@ -371,6 +321,12 @@ if (!Yii::$app->user->isGuest) {
                         <a href="<?= Yii::$app->urlManager->createUrl(['group/index']) ?>" class="nav-link">
                             <i class="nav-icon fas fa-users-cog"></i>
                             <p> Group Management</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="<?= Yii::$app->urlManager->createUrl(['site-menu/index']) ?>" class="nav-link">
+                            <i class="nav-icon fas fa-th-list"></i>
+                            <p> จัดการเมนูระบบงาน</p>
                         </a>
                     </li>
                     <?php endif; ?>

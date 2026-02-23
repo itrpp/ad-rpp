@@ -19,9 +19,9 @@ class SignupCest
         $I->see('Signup', 'h1');
         $I->see('Please fill out the following fields to signup:');
         $I->submitForm($this->formId, []);
-        $I->seeValidationError('Username cannot be blank.');
-        $I->seeValidationError('Email cannot be blank.');
-        $I->seeValidationError('Password cannot be blank.');
+        $I->seeValidationError('Username ห้ามเป็นค่าว่าง');
+        $I->seeValidationError('Email ห้ามเป็นค่าว่าง');
+        $I->seeValidationError('Password ห้ามเป็นค่าว่าง');
 
     }
 
@@ -34,8 +34,8 @@ class SignupCest
             'SignupForm[password]'  => 'tester_password',
         ]
         );
-        $I->dontSee('Username cannot be blank.', '.invalid-feedback');
-        $I->dontSee('Password cannot be bla่nkf่่่.', '.invalid-feedback');
+        $I->dontSee('Username cannot be blank', '.invalid-feedback');
+        $I->dontSee('Password cannot be bla่nkf่่่', '.invalid-feedback');
         $I->see('Email is not a valid email address.', '.invalid-feedback');
     }
 

@@ -49,14 +49,15 @@ if (class_exists('yii\debug\Module')) {
                         'options' => ['class' => 'form-group required'],
                     ])->textInput([
                         'maxlength' => true,
+                        'minlength' => 3,
                         'class' => 'form-control',
                         'placeholder' => 'Username ที่ใช้ในการเข้าระบบ',
                         'aria-describedby' => 'usernameHelp',
-                        'pattern' => '^[a-z0-9]+$',
-                        'title' => 'ตัวอักษรภาษาอังกฤษพิมพ์เล็ก (a-z) หรือตัวเลข (0-9)',
+                        'pattern' => '^[a-z0-9]{3,}$',
+                        'title' => 'อย่างน้อย 3 ตัวอักษร (a-z, 0-9)',
                         'oninput' => "this.value = this.value.toLowerCase().replace(/[^a-z0-9]/g, '')"
                     ]) ?>
-                    <small id="usernameHelp" class="form-text text-muted">ตัวอักษรภาษาอังกฤษพิมพ์เล็ก หรือตัวเลข</small>
+              
                     <div class="mt-1" id="username-availability" aria-live="polite"></div>
                 </div>
                 <div class="col-md-1">
@@ -435,9 +436,9 @@ if (class_exists('yii\debug\Module')) {
                     $.get(checkUrl, {username: val}).done(function(res){
                         if(res && res.success){
                             if(res.available){
-                                $('#username-availability').html('<span class=\"text-success\">✅ Username is available</span>');
+                                $('#username-availability').html('<span class=\"text-success\">✅ Username นี้ยังไม่มีผู้ใช้งาน</span>');
                             }else{
-                                $('#username-availability').html('<span class=\"text-danger\">❌ Username is already used</span>');
+                                $('#username-availability').html('<span class=\"text-danger\">❌ Username นี้ถูกใช้งานแล้ว</span>');
                             }
                         }
                     });

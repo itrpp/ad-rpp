@@ -33,7 +33,7 @@ class AdUser extends Model
             [['samaccountname', 'username', 'sername', 'personalTitle', 'department', 'title', 'password', 'confirm_password', 'streetaddress'], 'required'],
             [['email'], 'email'],
             [['target_ou', 'telephone', 'agree_terms', 'confirm_password', 'personalTitle', 'name_en', 'id_card', 'company', 'ephis_code'], 'safe'],
-            [['samaccountname'], 'string', 'max' => 20],
+            [['samaccountname'], 'string', 'min' => 3, 'max' => 20, 'tooShort' => 'Username ต้องมีอย่างน้อย 3 ตัวอักษร'],
             [['username', 'sername'], 'string', 'max' => 50],
             [['email', 'department'], 'string', 'max' => 100],
             [['telephone'], 'string', 'max' => 30],
@@ -114,7 +114,7 @@ class AdUser extends Model
     public function attributeLabels()
     {
         return [
-            'samaccountname' => 'User (ใช้ในการเข้าระบบ)',
+            'samaccountname' => '',
             'username' => 'ชื่อ (ภาษาไทย)',
             'sername' => 'นามสกุล (ภาษาไทย)',
             'email' => 'อีเมล',

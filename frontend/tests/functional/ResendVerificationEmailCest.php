@@ -48,7 +48,7 @@ class ResendVerificationEmailCest
     public function checkEmptyField(FunctionalTester $I)
     {
         $I->submitForm($this->formId, $this->formParams(''));
-        $I->seeValidationError('Email cannot be blank.');
+        $I->seeValidationError('Email ห้ามเป็นค่าว่าง');
     }
 
     public function checkWrongEmailFormat(FunctionalTester $I)

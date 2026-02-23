@@ -16,6 +16,8 @@ use frontend\models\ResetPasswordForm;
 use frontend\models\SignupForm;
 use frontend\models\ContactForm;
 use common\components\LdapHelper;
+use common\components\PermissionManager;
+use common\models\SiteServiceMenu;
 
 /**
  * Site controller
@@ -573,12 +575,27 @@ class SiteController extends Controller
             }
         }
 
+        // เมนูระบบงาน (จาก DB) — แสดงตามสิทธิ์
+        $isAdmin = false;
+        $serviceMenuItems = [];
+        if (!Yii::$app->user->isGuest) {
+            try {
+                $pm = new PermissionManager();
+                $isAdmin = $pm->isLdapAdmin();
+                $serviceMenuItems = SiteServiceMenu::getVisibleItems($isAdmin);
+            } catch (\Throwable $e) {
+                \Yii::warning('SiteServiceMenu load failed: ' . $e->getMessage());
+            }
+        }
+
         return $this->render('index', [
             'totalUsers' => $totalUsers,
             'totalOus' => $totalOus,
             'pendingUsers' => $pendingUsers,
             'pendingCount' => $pendingCount,
             'currentUserOu' => $currentUserOu,
+            'serviceMenuItems' => $serviceMenuItems,
+            'isAdmin' => $isAdmin,
         ]);
     }
 

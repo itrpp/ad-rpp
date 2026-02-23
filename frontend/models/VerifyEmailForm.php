@@ -29,7 +29,7 @@ class VerifyEmailForm extends Model
     public function __construct($token, array $config = [])
     {
         if (empty($token) || !is_string($token)) {
-            throw new InvalidArgumentException('Verify email token cannot be blank.');
+            throw new InvalidArgumentException('Verify email token ห้ามเป็นค่าว่าง');
         }
         $this->_user = User::findByVerificationToken($token);
         if (!$this->_user) {
