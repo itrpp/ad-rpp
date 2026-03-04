@@ -34,7 +34,7 @@ if (class_exists('yii\debug\Module')) {
      
             <?php $form = ActiveForm::begin([
                 'id' => 'create-form',
-                'enableAjaxValidation' => true,
+                'enableAjaxValidation' => false,
                 'fieldConfig' => [
                     'template' => "{label}\n{input}\n{error}",
                     'labelOptions' => ['class' => 'control-label'],
@@ -391,25 +391,23 @@ if (class_exists('yii\debug\Module')) {
         }
     </style>
 
-    <!-- Success Modal -->
-    <div class="modal fade" id="successModal" tabindex="-1" role="dialog" aria-labelledby="successModalLabel" aria-hidden="true">
+    <!-- Success Modal (Bootstrap 5) -->
+    <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="successModalLabel">แจ้งเตือน</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="text-center">
                         <i class="fas fa-check-circle text-success" style="font-size: 48px;"></i>
-                        <h4 class="mt-3">เพิ่มผู้ใช้สำเร็จ</h4>
-                        <p>บัญชีผู้ใช้ถูกสร้างใน Active Directory พร้อมรหัสผ่านที่กำหนดไว้</p>
+                        <h4 class="mt-3">ลงทะเบียนเสร็จสิ้น</h4>
+                        <p>คำขอลงทะเบียนของคุณถูกส่งเรียบร้อยแล้ว กรุณารอเจ้าหน้าที่อนุมัติการใช้งาน</p>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal" onclick="window.location.href='<?= Yii::$app->urlManager->createUrl(['site/index']) ?>'">ตกลง</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="window.location.href='<?= Yii::$app->urlManager->createUrl(['ldapuser/ou-register']) ?>'">ตกลง</button>
                 </div>
             </div>
         </div>
@@ -544,14 +542,22 @@ if (class_exists('yii\debug\Module')) {
                     type: 'POST',
                     data: form.serialize(),
                     success: function(response) {
-                        if(response.success) {
+                        // กรณีปกติ: คาดหวัง JSON {success: true|false, errors?: {...}}
+                        if (response && typeof response === 'object' && response.success) {
                             form[0].reset();
                             $('#passwordStrengthBar').css('width','0%').removeClass('bg-danger bg-warning bg-info bg-success');
                             $('#passwordStrengthText').text('Password strength: -');
                             $('#username-availability').html('');
                             $('#name-availability').html('');
-                            $('#successModal').modal('show');
-                        } else if(response.errors) {
+                            var modalEl = document.getElementById('successModal');
+                            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                var successModal = new bootstrap.Modal(modalEl);
+                                successModal.show();
+                            } else {
+                                // ถ้า Bootstrap Modal ใช้งานไม่ได้ ให้ fallback เป็น redirect ทันทีไปหน้ารออนุมัติ
+                                window.location.href = '" . Yii::$app->urlManager->createUrl(['ldapuser/ou-register']) . "';
+                            }
+                        } else if (response && typeof response === 'object' && response.errors) {
                             $.each(response.errors, function(field, errors) {
                                 var input = form.find('[name=\"' + field + '\"]');
                                 input.addClass('is-invalid');
@@ -561,6 +567,9 @@ if (class_exists('yii\debug\Module')) {
                                 }
                                 errorDiv.text(errors[0]);
                             });
+                        } else {
+                            // ถ้า response ไม่ใช่ JSON ที่คาด (เช่น redirect HTML) ให้ถือว่าสำเร็จแล้วและ redirect ไปหน้ารออนุมัติ
+                            window.location.href = '" . Yii::$app->urlManager->createUrl(['ldapuser/ou-register']) . "';
                         }
                     },
                     error: function() {

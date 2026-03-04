@@ -218,8 +218,8 @@ class AdUserController extends Controller
                 if (Yii::$app->request->isAjax) {
                     return $this->asJson(['success' => true]);
                 }
-                Yii::$app->session->setFlash('success', 'เพิ่มผู้ใช้สำเร็จ รหัสผ่านถูกตั้งค่าเรียบร้อยแล้ว คุณสามารถ login เพื่อตรวจสอบสถานะการลงทะเบียนได้');
-                return $this->redirect(['site/index']);
+                Yii::$app->session->setFlash('success', 'ลงทะเบียนสำเร็จ คำขอของคุณถูกส่งให้เจ้าหน้าที่พิจารณาแล้ว กรุณาตรวจสอบสถานะในหน้ารายการรออนุมัติ');
+                return $this->redirect(['ldapuser/ou-register']);
             } else {
                 // Log the specific error for debugging
                 if (!empty($model->errors)) {
