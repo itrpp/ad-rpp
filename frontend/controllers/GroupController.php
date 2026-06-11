@@ -5,6 +5,7 @@ namespace frontend\controllers;
 use Yii;
 use yii\web\Controller;
 use yii\web\Response;
+use yii\data\ArrayDataProvider;
 use yii\filters\AccessControl;
 use yii\filters\VerbFilter;
 use common\components\LdapHelper;
@@ -102,8 +103,18 @@ class GroupController extends Controller
             }
         }
 
+        $dataProvider = new ArrayDataProvider([
+            'allModels' => $groups,
+            'pagination' => [
+                'pageSize' => 20,
+                'defaultPageSize' => 20,
+            ],
+            'sort' => false,
+        ]);
+
         return $this->render('index', [
-            'groups' => $groups,
+            'groups' => $dataProvider->getModels(),
+            'pagination' => $dataProvider->getPagination(),
         ]);
     }
 

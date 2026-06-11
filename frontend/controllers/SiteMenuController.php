@@ -57,7 +57,6 @@ class SiteMenuController extends Controller
             $pagination = new Pagination([
                 'totalCount' => $query->count(),
                 'defaultPageSize' => 20,
-                'pageSizeParam' => 'per-page',
             ]);
             $models = $query->offset($pagination->offset)->limit($pagination->limit)->all();
         } catch (DbException $e) {

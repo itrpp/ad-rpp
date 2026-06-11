@@ -1,9 +1,11 @@
 <?php
 use yii\helpers\Html;
+use yii\widgets\LinkPager;
 use common\components\PermissionManager;
 
 /* @var $this yii\web\View */
 /* @var $groups array */
+/* @var $pagination yii\data\Pagination|null */
 
 $this->title = 'Group Management';
 $this->params['breadcrumbs'][] = $this->title;
@@ -39,7 +41,16 @@ $canManageMembers = $pm->hasPermission(PermissionManager::PERMISSION_GROUP_MANAG
                     </tr>
                 </thead>
                 <tbody>
-                    <?php $i=1; foreach ($groups as $g): ?>
+                    <?php if (empty($groups)): ?>
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">ไม่พบกลุ่ม Security Group - Global</td>
+                    </tr>
+                    <?php else: ?>
+                    <?php
+                    $rowOffset = isset($pagination) ? (int) $pagination->offset : 0;
+                    $i = $rowOffset + 1;
+                    foreach ($groups as $g):
+                    ?>
                     <tr>
                         <td class="text-end"><?= $i++ ?></td>
                         <td><?= Html::encode($g['cn']) ?></td>
@@ -74,9 +85,31 @@ $canManageMembers = $pm->hasPermission(PermissionManager::PERMISSION_GROUP_MANAG
                         </td>
                     </tr>
                     <?php endforeach; ?>
+                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
+        <?php if (isset($pagination) && $pagination->totalCount > 0): ?>
+        <?php
+        $pageFrom = $pagination->offset + 1;
+        $pageTo = min($pagination->offset + $pagination->limit, $pagination->totalCount);
+        ?>
+        <div class="group-pagination d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3 pt-3 border-top">
+            <small class="text-muted mb-0">
+                แสดง <?= $pageFrom ?>–<?= $pageTo ?> จาก <?= (int) $pagination->totalCount ?> รายการ
+            </small>
+            <?php if ($pagination->pageCount > 1): ?>
+            <?= LinkPager::widget([
+                'pagination' => $pagination,
+                'options' => ['class' => 'pagination pagination-sm mb-0'],
+                'linkContainerOptions' => ['class' => 'page-item'],
+                'linkOptions' => ['class' => 'page-link'],
+                'disabledListItemSubTagOptions' => ['tag' => 'span', 'class' => 'page-link'],
+                'maxButtonCount' => 5,
+            ]) ?>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -302,3 +335,8 @@ $jsConfig = [
 $this->registerJs('var groupManagementConfig = ' . json_encode($jsConfig) . ';', \yii\web\View::POS_HEAD);
 $this->registerJsFile('@web/js/group-management.js', ['depends' => [\yii\web\JqueryAsset::class]]);
 ?>
+<style>
+.group-pagination .pagination {
+    margin-bottom: 0;
+}
+</style>

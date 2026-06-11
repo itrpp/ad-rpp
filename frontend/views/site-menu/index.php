@@ -72,17 +72,25 @@ $this->params['breadcrumbs'][] = $this->title;
                 </tbody>
             </table>
         </div>
-        <?php if (isset($pagination) && $pagination->totalCount > $pagination->limit): ?>
-        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <small class="text-muted">
-                แสดง <?= $pagination->offset + 1 ?>–<?= min($pagination->offset + $pagination->limit, $pagination->totalCount) ?>
-                จาก <?= $pagination->totalCount ?> รายการ
+        <?php if (isset($pagination) && $pagination->totalCount > 0): ?>
+        <?php
+        $pageFrom = $pagination->offset + 1;
+        $pageTo = min($pagination->offset + $pagination->limit, $pagination->totalCount);
+        ?>
+        <div class="site-menu-pagination d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3 pt-3 border-top">
+            <small class="text-muted mb-0">
+                แสดง <?= $pageFrom ?>–<?= $pageTo ?> จาก <?= (int) $pagination->totalCount ?> รายการ
             </small>
+            <?php if ($pagination->pageCount > 1): ?>
             <?= LinkPager::widget([
                 'pagination' => $pagination,
                 'options' => ['class' => 'pagination pagination-sm mb-0'],
+                'linkContainerOptions' => ['class' => 'page-item'],
+                'linkOptions' => ['class' => 'page-link'],
+                'disabledListItemSubTagOptions' => ['tag' => 'span', 'class' => 'page-link'],
                 'maxButtonCount' => 5,
             ]) ?>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
     </div>
@@ -122,4 +130,7 @@ JS
 ?>
 <style>
 .text-break { word-break: break-all; }
+.site-menu-pagination .pagination {
+    margin-bottom: 0;
+}
 </style>

@@ -4,6 +4,7 @@ use yii\web\ForbiddenHttpException;
 use yii\widgets\ActiveForm;
 use yii\widgets\LinkPager;
 use common\models\User;
+use common\models\LdapUser;
 use yii\base\BaseObject;
 use common\components\PermissionManager;
 
@@ -106,6 +107,8 @@ $getUserAttr = function (array $user, $key) {
                     $currentPerPage = (int) Yii::$app->request->get('per-page', 20);
                     $currentPerPage = ($currentPerPage >= 5 && $currentPerPage <= 100) ? $currentPerPage : 20;
                     $currentOuPath = (string) Yii::$app->request->get('ou', '');
+                    $filterHasGtw = Yii::$app->request->get('filter_gtw') === '1';
+                    $filterHasEphis = Yii::$app->request->get('filter_ephis') === '1';
 
                     // Helper สำหรับทำ highlight คำค้นในผลลัพธ์
                     $highlightSearch = function ($text) use ($searchValue) {
@@ -128,6 +131,8 @@ $getUserAttr = function (array $user, $key) {
                         <input type="hidden" name="page" value="1">
                         <input type="hidden" name="per-page" value="<?= (int)$currentPerPage ?>">
                         <input type="hidden" name="ou" id="ouPath" value="<?= Html::encode($currentOuPath) ?>">
+                        <input type="hidden" name="filter_gtw" id="filterGtwHidden" value="<?= $filterHasGtw ? '1' : '' ?>">
+                        <input type="hidden" name="filter_ephis" id="filterEphisHidden" value="<?= $filterHasEphis ? '1' : '' ?>">
                         <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
                         <input type="text" name="search" class="form-control float-right border-start-0" id="userSearch" placeholder="Search users by name, username, email, department or title..." aria-label="Search users" value="<?= Html::encode($searchValue) ?>">
                         <button type="button" class="btn btn-outline-secondary" id="clearUserSearch" aria-label="Clear search" title="Clear">
@@ -234,10 +239,25 @@ $getUserAttr = function (array $user, $key) {
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="d-flex align-items-center">
-                                <small class="text-muted">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    ค้นหาด้านบน = ค้นทั้งระบบ · OU และช่องกรองตาราง = กรองเฉพาะหน้านี้
+                            <div class="integration-filter-group d-flex flex-wrap align-items-center gap-2">
+                                <span class="small text-muted me-1"><i class="fas fa-filter me-1"></i>กรองรหัส:</span>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="filterHasGtw" value="1"<?= $filterHasGtw ? ' checked' : '' ?>>
+                                    <label class="form-check-label integration-filter-label" for="filterHasGtw">
+                                        <span class="badge user-badge-gtw">GTW</span>
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="filterHasEphis" value="1"<?= $filterHasEphis ? ' checked' : '' ?>>
+                                    <label class="form-check-label integration-filter-label" for="filterHasEphis">
+                                        <span class="badge user-badge-ephis">e-phis</span>
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="clearIntegrationFilter" title="ล้างตัวกรองรหัส" aria-label="ล้างตัวกรองรหัส">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <small class="text-muted ms-1 d-none d-xl-inline">
+                                    กรองเฉพาะหน้านี้
                                 </small>
                             </div>
                         </div>
@@ -292,6 +312,10 @@ $getUserAttr = function (array $user, $key) {
                                     $ouDisplay = $getUserAttr($user, 'ou') ?: $ouDn;
                                 }
                                 $dataOupath = $ouPathStr !== '' ? $ouPathStr : $ouDisplay;
+                                $gtwCode = LdapUser::normalizeGtwCode($getUserAttr($user, 'countrycode'));
+                                $ephisCode = trim($getUserAttr($user, 'physicaldeliveryofficename'));
+                                $hasGtw = $gtwCode !== '' && preg_match('/^\d+$/', $gtwCode) === 1;
+                                $hasEphis = $ephisCode !== '' && preg_match('/^\d+$/', $ephisCode) === 1;
                                 ?>
                                 <tr class="user-row" 
                                     data-ou="<?= Html::encode($userDn) ?>"
@@ -306,6 +330,8 @@ $getUserAttr = function (array $user, $key) {
                                     data-status="<?= $isDisabled ? 'disabled' : 'enabled' ?>"
                                     data-disabled="<?= $isDisabled ? '1' : '0' ?>"
                                     data-ouname="<?= Html::encode($ouDisplay) ?>"
+                                    data-has-gtw="<?= $hasGtw ? '1' : '0' ?>"
+                                    data-has-ephis="<?= $hasEphis ? '1' : '0' ?>"
                                     data-rowindex="<?= $counter ?>"
                                 >
                                     <td class="text-end"><?= $counter ?></td>

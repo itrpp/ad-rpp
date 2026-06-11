@@ -58,6 +58,14 @@ $allOus = $ldap->getOrganizationalUnits('OU=rpp-user,DC=rpphosp,DC=local');
 
 // Create dropdown options from AD OUs
 $excludedOus = ['Register-test', 'updateOU', 'test', 'ฝ่ายการพยาบาล', 'ฝ่ายการพยาบาล(Nurse)', 'rpp-register'];
+$stripItDesSuffix = static function (string $value): string {
+    $value = trim($value);
+    if ($value !== '' && strlen($value) > 3
+        && substr(strtolower($value), -3) === 'des') {
+        return substr($value, 0, -3);
+    }
+    return $value;
+};
 
 foreach ($allOus as $ou) {
     if (isset($ou['ou']) && isset($ou['dn'])) {
@@ -65,29 +73,32 @@ foreach ($allOus as $ou) {
         if (in_array($ou['ou'], $excludedOus)) {
             continue;
         }
-        
-        // Use OU name as value for department attribute
-        // Extract clean OU name (remove suffix after dash if exists, e.g., "IT-itdes" -> "IT")
+
+        // แสดง "IT - it" แทน "IT - itdes" (itdes มาจากชื่อ OU หรือ description ใน AD)
         $ouName = $ou['ou'];
-        
-        // Always extract clean name first (remove suffix after dash)
+
         if (strpos($ouName, '-') !== false) {
-            $parts = explode('-', $ouName);
-            $displayName = trim($parts[0]); // This will be "IT" for "IT-itdes"
+            $parts = explode('-', $ouName, 2);
+            $firstPart = trim($parts[0]);
+            $secondPart = $stripItDesSuffix(trim($parts[1] ?? ''));
+            $displayName = $secondPart !== ''
+                ? ($firstPart . ' - ' . $secondPart)
+                : $firstPart;
         } else {
             $displayName = $ouName;
-        }
-        
-        // Add description if available (but don't add if it's just a duplicate of the clean name)
-        if (isset($ou['description']) && !empty($ou['description'])) {
-            $cleanDescription = trim($ou['description']);
-            // Only add description if it's different from the clean display name
-            if ($cleanDescription !== $displayName && !empty($cleanDescription)) {
-                $displayName .= ' - ' . $cleanDescription;
+
+            if (isset($ou['description']) && !empty($ou['description'])) {
+                $cleanDescription = $stripItDesSuffix(trim($ou['description']));
+                if ($cleanDescription !== $displayName && $cleanDescription !== '') {
+                    $displayName .= ' - ' . $cleanDescription;
+                }
             }
         }
-        
-        // Key is the full OU name from AD (e.g., "IT-itdes"), value is display name (e.g., "IT")
+
+        if (strcasecmp($displayName, 'IT - itdes') === 0) {
+            $displayName = 'IT - it';
+        }
+
         $ouOptions[$ou['ou']] = $displayName;
     }
 }

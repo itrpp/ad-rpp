@@ -1,4 +1,9 @@
 /* OU User Page Styles */
+.user-integration-badges {
+    justify-content: flex-start;
+    width: 100%;
+}
+
 .user-integration-badges .badge {
     font-size: 0.68rem;
     font-weight: 600;
@@ -13,6 +18,56 @@
 .user-integration-badges .user-badge-ephis {
     background-color: #4c6ef5;
     color: #fff;
+}
+
+.integration-filter-group .form-check-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-right: 0.5rem;
+    min-height: 1.75rem;
+}
+
+.integration-filter-group .form-check-input {
+    float: none;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.integration-filter-group .form-check-label {
+    width: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.integration-filter-label {
+    cursor: pointer;
+    user-select: none;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+}
+
+.integration-filter-label .badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.4em 0.6em;
+    border-radius: 0.25rem;
+    display: inline-block;
+    line-height: 1.1;
+}
+
+.integration-filter-group .user-badge-gtw,
+.integration-filter-label .user-badge-gtw {
+    background-color: #6c757d !important;
+    color: #fff !important;
+}
+
+.integration-filter-group .user-badge-ephis,
+.integration-filter-label .user-badge-ephis {
+    background-color: #4c6ef5 !important;
+    color: #fff !important;
 }
 
 .content-wrapper {

@@ -4,6 +4,7 @@
 use yii\helpers\Html;
 use yii\web\ForbiddenHttpException;
 use yii\widgets\ActiveForm;
+use yii\widgets\LinkPager;
 use common\components\PermissionManager;
 
 // Check if user is logged in
@@ -162,6 +163,10 @@ a {
 ::selection {
     cursor: text;
 }
+
+.ou-register-pagination .pagination {
+    margin-bottom: 0;
+}
 </style>
 
 <!-- Main Content -->
@@ -185,9 +190,12 @@ a {
                 </div>
             </div>
             <div class="card-body">
-                <?php if (isset($ouUsers[$mainOu['dn']])): ?>
+                <?php if (isset($pagination) && $pagination->totalCount > 0): ?>
                 <div class="ou-users">
-                    <h5 class="mb-3">Users in this OU:</h5>
+                    <h5 class="mb-3">
+                        Users in this OU:
+                        <span class="badge bg-info ms-1"><?= (int) $pagination->totalCount ?> คน</span>
+                    </h5>
                     <div class="table-responsive">
                         <table class="table table-bordered table-striped">
                             <thead>
@@ -204,9 +212,10 @@ a {
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php 
-                                $counter = 1;
-                                foreach ($ouUsers[$mainOu['dn']] as $user): 
+                                <?php
+                                $rowOffset = isset($pagination) ? (int) $pagination->offset : 0;
+                                $counter = $rowOffset + 1;
+                                foreach ($registerUsers as $user):
                                     // Ensure all required fields are present
                                     $username = $user['samaccountname'] ?? '';
                                     $displayName = $user['displayname'] ?? '';
@@ -292,6 +301,27 @@ a {
                             </tbody>
                         </table>
                     </div>
+                    <?php if (isset($pagination) && $pagination->totalCount > 0): ?>
+                    <?php
+                    $pageFrom = $pagination->offset + 1;
+                    $pageTo = min($pagination->offset + $pagination->limit, $pagination->totalCount);
+                    ?>
+                    <div class="ou-register-pagination d-flex flex-wrap justify-content-between align-items-center gap-3 mt-3 pt-3 border-top">
+                        <small class="text-muted mb-0">
+                            แสดง <?= $pageFrom ?>–<?= $pageTo ?> จาก <?= (int) $pagination->totalCount ?> รายการ
+                        </small>
+                        <?php if ($pagination->pageCount > 1): ?>
+                        <?= LinkPager::widget([
+                            'pagination' => $pagination,
+                            'options' => ['class' => 'pagination pagination-sm mb-0'],
+                            'linkContainerOptions' => ['class' => 'page-item'],
+                            'linkOptions' => ['class' => 'page-link'],
+                            'disabledListItemSubTagOptions' => ['tag' => 'span', 'class' => 'page-link'],
+                            'maxButtonCount' => 5,
+                        ]) ?>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <?php else: ?>
                 <div class="alert alert-info">

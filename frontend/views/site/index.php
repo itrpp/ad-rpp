@@ -227,17 +227,43 @@ $this->registerCssFile('@web/css/site-index.css');
 
         <!-- Hospital Systems Section - Only show for logged in users (เมนูจาก DB) -->
         <?php if (!Yii::$app->user->isGuest): ?>
+        <?php $serviceMenuItems = isset($serviceMenuItems) ? $serviceMenuItems : []; ?>
         <div class="modern-services-section">
             <div class="section-header">
                 <h2 class="section-title">
                     <i class="fas fa-sitemap"></i> ระบบงานที่เกี่ยวข้องในโรงพยาบาล
                 </h2>
                 <p class="section-subtitle">เข้าถึงระบบต่างๆ ของโรงพยาบาลได้ที่นี่..</p>
+                <?php if (!empty($serviceMenuItems)): ?>
+                <div class="service-search-wrap">
+                    <div class="input-group input-group-sm service-search-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text"
+                               id="serviceMenuSearch"
+                               class="form-control service-search-input"
+                               placeholder="ค้นหาระบบงาน..."
+                               aria-label="ค้นหาระบบงาน"
+                               autocomplete="off">
+                        <button type="button"
+                                class="btn btn-outline-secondary service-search-clear"
+                                id="clearServiceMenuSearch"
+                                title="ล้างคำค้นหา"
+                                aria-label="ล้างคำค้นหา"
+                                hidden>
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <small class="service-search-meta text-muted" id="serviceSearchMeta" aria-live="polite"></small>
+                </div>
+                <?php endif; ?>
             </div>
-            <div class="services-grid">
-                <?php
-                $serviceMenuItems = isset($serviceMenuItems) ? $serviceMenuItems : [];
-                if (!empty($serviceMenuItems)):
+            <?php if (!empty($serviceMenuItems)): ?>
+            <div class="service-search-empty text-muted text-center py-3" id="serviceSearchEmpty" hidden>
+                <i class="fas fa-search me-1"></i> ไม่พบระบบงานที่ตรงกับคำค้นหา
+            </div>
+            <?php endif; ?>
+            <div class="services-grid" id="servicesGrid">
+                <?php if (!empty($serviceMenuItems)):
                     foreach ($serviceMenuItems as $item):
                         $target = $item->open_new_tab ? '_blank' : '_self';
                         $imgUrl = !empty($item->image_path)
@@ -247,7 +273,11 @@ $this->registerCssFile('@web/css/site-index.css');
                             ? "background: linear-gradient(135deg, rgba(0,0,0,0.2), rgba(0,0,0,0.05)), url('" . Html::encode($imgUrl) . "') center / cover no-repeat"
                             : "background: linear-gradient(135deg, rgba(33,150,243,0.35), rgba(25,118,210,0.35))";
                 ?>
-                    <div class="service-card <?= Html::encode($item->card_color) ?>">
+                    <?php
+                        $searchText = mb_strtolower(trim($item->title . ' ' . $item->description));
+                    ?>
+                    <div class="service-card <?= Html::encode($item->card_color) ?>"
+                         data-search-text="<?= Html::encode($searchText) ?>">
                         <a href="<?= Html::encode($item->url) ?>" target="<?= $target ?>" class="service-card-link">
                             <div class="service-card-image" style="<?= $imgStyle ?>"></div>
                             <div class="service-card-content">
@@ -281,6 +311,53 @@ $this->registerCssFile('@web/css/site-index.css');
 $(document).ready(function() {
     // Add fade-in animation to cards
     $('.card').addClass('fade-in');
+
+    // ค้นหาระบบงานในโรงพยาบาล (กรองการ์ดแบบ real-time)
+    (function initServiceMenuSearch() {
+        var $search = $('#serviceMenuSearch');
+        if (!$search.length) {
+            return;
+        }
+
+        var $cards = $('#servicesGrid .service-card');
+        var $empty = $('#serviceSearchEmpty');
+        var $clear = $('#clearServiceMenuSearch');
+        var $meta = $('#serviceSearchMeta');
+
+        function normalize(value) {
+            return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        }
+
+        function filterServiceCards() {
+            var term = normalize($search.val());
+            var visible = 0;
+
+            $clear.prop('hidden', term === '');
+
+            $cards.each(function() {
+                var haystack = normalize($(this).attr('data-search-text') || $(this).text());
+                var matched = term === '' || haystack.indexOf(term) !== -1;
+                $(this).toggle(matched);
+                if (matched) {
+                    visible++;
+                }
+            });
+
+            $empty.prop('hidden', term === '' || visible > 0);
+
+            if (term === '') {
+                $meta.text('');
+            } else {
+                $meta.text('พบ ' + visible + ' รายการ');
+            }
+        }
+
+        $search.on('input', filterServiceCards);
+        $clear.on('click', function() {
+            $search.val('').trigger('focus');
+            filterServiceCards();
+        });
+    })();
     
     // Periodically check if current user's OU has changed to activate access
     var refreshTimer = null;

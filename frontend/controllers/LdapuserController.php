@@ -1293,6 +1293,7 @@ class LdapuserController extends Controller
         
         // Get users for the Register OU
         $ouUsers = [];
+        $registerUsers = [];
         $mainOuUsers = $ldap->getUsersByOu($mainOu['dn']);
         if (!empty($mainOuUsers)) {
             // Sort users by display name
@@ -1302,12 +1303,25 @@ class LdapuserController extends Controller
                 return strcasecmp($nameA, $nameB);
             });
             $ouUsers[$mainOu['dn']] = $mainOuUsers;
+            $registerUsers = $mainOuUsers;
         }
+
+        $dataProvider = new ArrayDataProvider([
+            'allModels' => $registerUsers,
+            'pagination' => [
+                'pageSize' => 20,
+                'defaultPageSize' => 20,
+                'route' => 'ldapuser/ou-register',
+            ],
+            'sort' => false,
+        ]);
         
         return $this->render('ou-register', [
             'mainOu' => $mainOu,
             'subOus' => [], // No sub OUs needed
             'ouUsers' => $ouUsers,
+            'registerUsers' => $dataProvider->getModels(),
+            'pagination' => $dataProvider->getPagination(),
             'currentUser' => $this->getCurrentUserLdapData(),
             'isAdmin' => $this->hasPermission('ou-register')
         ]);

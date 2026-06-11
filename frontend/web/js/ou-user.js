@@ -9,8 +9,10 @@ class OuUserManager {
         this.sortKey = 'row';
         this.sortDir = 'asc';
         this.toggleStatusDebounce = new Map();
+        this.integrationFilterStorageKey = 'ouUserIntegrationFilters';
         
         this.initializeElements();
+        this.restoreIntegrationFilters();
         this.bindEvents();
         this.initializePage();
     }
@@ -23,6 +25,11 @@ class OuUserManager {
         this.ouFilter = document.getElementById('ouFilter');
         this.clearOuFilter = document.getElementById('clearOuFilter');
         this.ouPathInput = document.getElementById('ouPath');
+        this.filterHasGtw = document.getElementById('filterHasGtw');
+        this.filterHasEphis = document.getElementById('filterHasEphis');
+        this.clearIntegrationFilter = document.getElementById('clearIntegrationFilter');
+        this.filterGtwHidden = document.getElementById('filterGtwHidden');
+        this.filterEphisHidden = document.getElementById('filterEphisHidden');
         
         // Pagination elements
         this.paginationInfo = document.getElementById('paginationInfo');
@@ -89,6 +96,7 @@ class OuUserManager {
                         this.ouPathInput.value = path;
                     }
                     if (form) {
+                        this.syncIntegrationFilterHiddenInputs();
                         form.submit();
                         return;
                     }
@@ -108,11 +116,37 @@ class OuUserManager {
                 if (serverPagination) {
                     const form = document.getElementById('userSearchForm');
                     if (form) {
+                        this.syncIntegrationFilterHiddenInputs();
                         form.submit();
                         return;
                     }
                 }
                 this.applySearchAndRender(1);
+            });
+        }
+
+        const userSearchForm = document.getElementById('userSearchForm');
+        if (userSearchForm) {
+            userSearchForm.addEventListener('submit', () => {
+                this.syncIntegrationFilterHiddenInputs();
+            });
+        }
+
+        [this.filterHasGtw, this.filterHasEphis].forEach((el) => {
+            if (el) {
+                el.addEventListener('change', () => this.onIntegrationFilterChange());
+            }
+        });
+
+        if (this.clearIntegrationFilter) {
+            this.clearIntegrationFilter.addEventListener('click', () => {
+                if (this.filterHasGtw) {
+                    this.filterHasGtw.checked = false;
+                }
+                if (this.filterHasEphis) {
+                    this.filterHasEphis.checked = false;
+                }
+                this.onIntegrationFilterChange();
             });
         }
         
@@ -137,7 +171,7 @@ class OuUserManager {
                 const link = e.target.closest('a.page-link[href]');
                 if (link && link.getAttribute('href') && link.getAttribute('href') !== '#') {
                     e.preventDefault();
-                    window.location.href = link.getAttribute('href');
+                    window.location.href = this.appendIntegrationFiltersToUrl(link.getAttribute('href'));
                 }
             });
         }
@@ -168,9 +202,136 @@ class OuUserManager {
         const container = document.querySelector('.ou-users');
         const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
         if (serverPagination) {
-            // โหมด server-side: ให้ backend จัดการค้นหา/แบ่งหน้าเอง
+            if (this.hasActiveIntegrationFilters()) {
+                this.applySearchAndRender(1);
+            }
             return;
         }
+        this.applySearchAndRender(1);
+    }
+
+    getIntegrationFilterState() {
+        return {
+            gtw: !!(this.filterHasGtw && this.filterHasGtw.checked),
+            ephis: !!(this.filterHasEphis && this.filterHasEphis.checked),
+        };
+    }
+
+    hasActiveIntegrationFilters() {
+        const state = this.getIntegrationFilterState();
+        return state.gtw || state.ephis;
+    }
+
+    saveIntegrationFilters() {
+        const state = this.getIntegrationFilterState();
+        try {
+            sessionStorage.setItem(this.integrationFilterStorageKey, JSON.stringify(state));
+        } catch (err) {
+            // ignore storage errors
+        }
+    }
+
+    restoreIntegrationFilters() {
+        const url = new URL(window.location.href);
+        const hasUrlGtw = url.searchParams.has('filter_gtw');
+        const hasUrlEphis = url.searchParams.has('filter_ephis');
+
+        if (hasUrlGtw || hasUrlEphis) {
+            if (this.filterHasGtw) {
+                this.filterHasGtw.checked = url.searchParams.get('filter_gtw') === '1';
+            }
+            if (this.filterHasEphis) {
+                this.filterHasEphis.checked = url.searchParams.get('filter_ephis') === '1';
+            }
+            this.syncIntegrationFilterHiddenInputs();
+            this.saveIntegrationFilters();
+            return;
+        }
+
+        try {
+            const raw = sessionStorage.getItem(this.integrationFilterStorageKey);
+            if (!raw) {
+                return;
+            }
+            const data = JSON.parse(raw);
+            if (this.filterHasGtw) {
+                this.filterHasGtw.checked = !!data.gtw;
+            }
+            if (this.filterHasEphis) {
+                this.filterHasEphis.checked = !!data.ephis;
+            }
+            this.syncIntegrationFilterHiddenInputs();
+            this.updateIntegrationFilterQuery();
+            this.updatePaginationLinkHrefs();
+        } catch (err) {
+            // ignore storage errors
+        }
+    }
+
+    syncIntegrationFilterHiddenInputs() {
+        const state = this.getIntegrationFilterState();
+        if (this.filterGtwHidden) {
+            this.filterGtwHidden.value = state.gtw ? '1' : '';
+            this.filterGtwHidden.disabled = !state.gtw;
+        }
+        if (this.filterEphisHidden) {
+            this.filterEphisHidden.value = state.ephis ? '1' : '';
+            this.filterEphisHidden.disabled = !state.ephis;
+        }
+    }
+
+    updateIntegrationFilterQuery() {
+        const url = new URL(window.location.href);
+        const state = this.getIntegrationFilterState();
+        if (state.gtw) {
+            url.searchParams.set('filter_gtw', '1');
+        } else {
+            url.searchParams.delete('filter_gtw');
+        }
+        if (state.ephis) {
+            url.searchParams.set('filter_ephis', '1');
+        } else {
+            url.searchParams.delete('filter_ephis');
+        }
+        const nextUrl = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '');
+        window.history.replaceState({}, '', nextUrl);
+    }
+
+    appendIntegrationFiltersToUrl(href) {
+        try {
+            const url = new URL(href, window.location.origin);
+            const state = this.getIntegrationFilterState();
+            if (state.gtw) {
+                url.searchParams.set('filter_gtw', '1');
+            } else {
+                url.searchParams.delete('filter_gtw');
+            }
+            if (state.ephis) {
+                url.searchParams.set('filter_ephis', '1');
+            } else {
+                url.searchParams.delete('filter_ephis');
+            }
+            return url.toString();
+        } catch (err) {
+            return href;
+        }
+    }
+
+    updatePaginationLinkHrefs() {
+        document.querySelectorAll('#paginationButtons a.page-link[href]').forEach((link) => {
+            const href = link.getAttribute('href');
+            if (!href || href === '#') {
+                return;
+            }
+            link.setAttribute('href', this.appendIntegrationFiltersToUrl(href));
+        });
+    }
+
+    onIntegrationFilterChange() {
+        this.syncIntegrationFilterHiddenInputs();
+        this.saveIntegrationFilters();
+        this.updateIntegrationFilterQuery();
+        this.updatePaginationLinkHrefs();
         this.applySearchAndRender(1);
     }
 
@@ -210,6 +371,8 @@ class OuUserManager {
         const fDeptRaw = (document.getElementById('filterDepartment')?.value || '');
         const fTitleRaw = (document.getElementById('filterTitle')?.value || '');
         const fStatusRaw = (document.getElementById('filterStatus')?.value || '');
+        const filterGtw = !!(this.filterHasGtw && this.filterHasGtw.checked);
+        const filterEphis = !!(this.filterHasEphis && this.filterHasEphis.checked);
         
         const norm = (s) => String(s).replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -250,7 +413,13 @@ class OuUserManager {
                              (!fTitle || title.includes(fTitle)) &&
                              (!fStatus || rowStatus === fStatus);
 
-            row.dataset.matches = (globalMatch && colMatch && ouMatch) ? '1' : '0';
+            const hasGtw = row.dataset.hasGtw === '1';
+            const hasEphis = row.dataset.hasEphis === '1';
+            const gtwMatch = !filterGtw || hasGtw;
+            const ephisMatch = !filterEphis || hasEphis;
+            const integrationMatch = gtwMatch && ephisMatch;
+
+            row.dataset.matches = (globalMatch && colMatch && ouMatch && integrationMatch) ? '1' : '0';
         });
     }
 

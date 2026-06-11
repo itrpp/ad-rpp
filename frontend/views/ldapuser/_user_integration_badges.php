@@ -29,7 +29,7 @@ if (!$hasGtw && !$hasEphis) {
     return;
 }
 ?>
-<div class="user-integration-badges d-flex flex-wrap gap-1 justify-content-center mb-1">
+<div class="user-integration-badges d-flex flex-wrap gap-1 justify-content-start mb-1">
     <?php if ($hasGtw): ?>
         <span class="badge user-badge-gtw" title="เลขรหัส GTW: <?= Html::encode($gtwCode) ?>">GTW</span>
     <?php endif; ?>
