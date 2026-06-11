@@ -171,6 +171,11 @@ class LdapHelper
                 }
             } elseif ($key === 'country' || $key === 'countryCode') {
                 $stringValue = is_array($value) ? (isset($value[0]) ? $value[0] : '') : $value;
+                $stringValue = trim((string)$stringValue);
+                if ($stringValue === '' || $stringValue === '0') {
+                    Yii::debug('Skipping empty countryCode update');
+                    continue;
+                }
                 $ldapData['countryCode'] = [$stringValue];
                 Yii::debug("Adding countryCode with value: $stringValue");
             } elseif ($key !== 'newPassword' && $key !== 'confirmPassword') { // Skip empty password and confirm password

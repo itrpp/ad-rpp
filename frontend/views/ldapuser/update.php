@@ -37,6 +37,15 @@ $countryEditable = $isAdmin || $canEditGtwOnly;
 $backUrl = ($readOnly || $canEditGtwOnly) ? ['ou-register'] : ['ou-user'];
 $canViewOuRegister = $pm->canViewOuRegister();
 $canViewAllUsers = $isAdmin || $pm->isSuperUser();
+$gtwOriginalValue = \common\models\LdapUser::normalizeGtwCode($model->country ?? '');
+$gtwInputAttrs = [
+    'maxlength' => 6,
+    'placeholder' => 'กรอกรหัส',
+    'inputmode' => 'numeric',
+    'autocomplete' => 'off',
+    'title' => 'ตัวเลขไม่เกิน 6 หลัก',
+    'data-original-gtw' => $gtwOriginalValue,
+];
 $mainFormClosed = false;
 
 // Get available OUs
@@ -326,14 +335,9 @@ if (Yii::$app->session->hasFlash('success')) {
                                         ]); ?>
                                         <?= Html::hiddenInput('gtw_save', '1') ?>
                                         <?= $gtwForm->field($model, 'country')
-                                            ->textInput([
+                                            ->textInput(array_merge([
                                                 'id' => 'ldapuser-country',
-                                                'maxlength' => 6,
-                                                'placeholder' => 'กรอกรหัส',
-                                                'inputmode' => 'numeric',
-                                                'autocomplete' => 'off',
-                                                'title' => 'ตัวเลขไม่เกิน 6 หลัก',
-                                            ])
+                                            ], $gtwInputAttrs))
                                             ->label('<i class="fas fa-key me-1"></i>เลขรหัสผู้ใช้งาน GTW') ?>
                                         <div class="d-flex gap-2 flex-wrap justify-content-start mt-2">
                                             <?= Html::submitButton('<i class="fas fa-save me-1"></i>บันทึก GTW', [
@@ -448,12 +452,8 @@ if (Yii::$app->session->hasFlash('success')) {
                                 <div class="col-md-6">
                                     <?= $form->field($model, 'country')
                                         ->textInput(array_merge([
-                                            'maxlength' => 6,
-                                            'placeholder' => 'กรอกรหัส',
-                                            'inputmode' => 'numeric',
-                                            'autocomplete' => 'off',
-                                            'title' => 'ตัวเลขไม่เกิน 6 หลัก',
-                                        ], $countryEditable ? ['class' => 'form-control gtw-code-input'] : $roInput))
+                                            'id' => 'ldapuser-country',
+                                        ], $gtwInputAttrs, $countryEditable ? ['class' => 'form-control gtw-code-input'] : $roInput))
                                         ->label('เลขรหัสผู้ใช้งาน GTW') ?>
                                 </div>
                                 <?php endif; ?>
@@ -960,6 +960,24 @@ function isValidGtwInput(val) {
     return val === '' || /^\d{1,6}$/.test(val);
 }
 
+function shouldRejectEmptyGtwSave(gtwField) {
+    const val = normalizeGtwInput(gtwField.value).trim();
+    if (val !== '') {
+        return false;
+    }
+    if (gtwField.closest('#gtw-save-form')) {
+        return true;
+    }
+    const original = (gtwField.dataset.originalGtw || '').trim();
+    return original !== '';
+}
+
+function showEmptyGtwError(gtwField) {
+    alert('ไม่สามารถบันทึกค่าว่างลงระบบได้ กรุณากรอกเลขรหัสผู้ใช้งาน GTW');
+    gtwField.focus();
+    gtwField.select();
+}
+
 function validateGtwForm() {
     const gtwField = document.getElementById('ldapuser-country');
     if (!gtwField) {
@@ -967,6 +985,10 @@ function validateGtwForm() {
     }
     gtwField.value = normalizeGtwInput(gtwField.value);
     const val = gtwField.value.trim();
+    if (shouldRejectEmptyGtwSave(gtwField)) {
+        showEmptyGtwError(gtwField);
+        return false;
+    }
     if (!isValidGtwInput(val)) {
         alert('เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลขไม่เกิน 6 หลัก');
         gtwField.focus();
@@ -1007,13 +1029,15 @@ function validateForm() {
         }
     }
     
-    // GTW code (Admin): ไม่บังคับ ตัวเลขไม่เกิน 6 หลัก
+    // GTW code (Admin): ห้ามบันทึกค่าว่างถ้าเคยมีค่าในระบบ
     const gtwField = document.getElementById('ldapuser-country');
     if (gtwField && !gtwField.disabled && !gtwField.readOnly) {
-        if (gtwField.value.trim() !== '') {
-            gtwField.value = normalizeGtwInput(gtwField.value);
-        }
+        gtwField.value = normalizeGtwInput(gtwField.value);
         const gtwVal = gtwField.value.trim();
+        if (shouldRejectEmptyGtwSave(gtwField)) {
+            showEmptyGtwError(gtwField);
+            return false;
+        }
         if (gtwVal !== '' && !isValidGtwInput(gtwVal)) {
             alert('เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลขไม่เกิน 6 หลัก');
             gtwField.focus();
@@ -1169,7 +1193,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <?php if ($canEditGtwOnly): ?>
-// ManageUser: ฟอร์ม GTW แยก (ไม่บังคับกรอก, ไม่เติม 0000)
+// ManageUser: ฟอร์ม GTW แยก (ห้ามบันทึกค่าว่างลง AD)
 document.addEventListener('DOMContentLoaded', function() {
     var gtwForm = document.getElementById('gtw-save-form');
     var gtwField = document.getElementById('ldapuser-country');
@@ -1183,6 +1207,11 @@ document.addEventListener('DOMContentLoaded', function() {
     gtwForm.addEventListener('submit', function(e) {
         gtwField.value = normalizeGtwInput(gtwField.value);
         const val = gtwField.value.trim();
+        if (shouldRejectEmptyGtwSave(gtwField)) {
+            e.preventDefault();
+            showEmptyGtwError(gtwField);
+            return;
+        }
         if (!isValidGtwInput(val)) {
             e.preventDefault();
             alert('เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลขไม่เกิน 6 หลัก');

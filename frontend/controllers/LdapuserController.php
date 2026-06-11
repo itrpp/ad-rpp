@@ -328,6 +328,16 @@ class LdapuserController extends Controller
                 ]);
             }
 
+            if ($gtwCode === '') {
+                Yii::$app->session->setFlash('error', 'ไม่สามารถบันทึกค่าว่างลงระบบได้ กรุณากรอกเลขรหัสผู้ใช้งาน GTW');
+                $model->country = $originalCountry;
+                return $this->render('update', [
+                    'model' => $model,
+                    'readOnly' => false,
+                    'canEditGtwOnly' => true,
+                ]);
+            }
+
             if ($gtwCode === $originalCountry) {
                 Yii::$app->session->setFlash('info', 'ไม่มีการเปลี่ยนแปลง');
                 return $this->redirect(['update', 'cn' => $model->cn]);
@@ -408,13 +418,23 @@ class LdapuserController extends Controller
             }
 
             try {
+                $newCountry = LdapUser::normalizeGtwCode($model->country ?? '');
+                if ($newCountry === '' && $originalCountry !== '') {
+                    Yii::$app->session->setFlash('error', 'ไม่สามารถบันทึกค่าว่างลงระบบได้ กรุณากรอกเลขรหัสผู้ใช้งาน GTW');
+                    $model->country = $originalCountry;
+                    return $this->render('update', ['model' => $model, 'readOnly' => $readOnly]);
+                }
+
                 // Only include fields that are actually in the form
                 $updateData = [];
                 $fields = ['sAMAccountName', 'displayName', 'department', 'title', 'mail', 'physicalDeliveryOfficeName', 'telephoneNumber', 'country'];
                 foreach ($fields as $field) {
                     if (isset($model->$field)) {
                         if ($field === 'country') {
-                            $updateData['countryCode'] = $model->$field;
+                            if ($newCountry !== '') {
+                                $updateData['countryCode'] = $newCountry;
+                            }
+                            continue;
                         } else {
                             $updateData[$field] = $model->$field;
                         }

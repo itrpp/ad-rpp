@@ -91,7 +91,8 @@ class LdapUser extends Model
             ['confirmPassword', 'compare', 'compareAttribute' => 'newPassword', 'skipOnEmpty' => true],
             ['sAMAccountName', 'match', 'pattern' => '/^[a-zA-Z0-9_]+$/', 'message' => 'Username ต้องประกอบด้วยตัวอักษร ตัวเลข และ underscore เท่านั้น'],
             ['country', 'trim'],
-            // ไม่บังคับกรอก — ถ้ากรอกต้องเป็นตัวเลข 1-6 หลัก
+            ['country', 'required', 'on' => 'gtwUpdate', 'message' => 'กรุณากรอกเลขรหัสผู้ใช้งาน GTW (ไม่สามารถบันทึกค่าว่างลงระบบได้)'],
+            // ถ้ากรอกต้องเป็นตัวเลข 1-6 หลัก
             ['country', 'match', 'pattern' => '/^\d{1,6}$/', 'on' => ['update', 'gtwUpdate'], 'skipOnEmpty' => true, 'message' => 'เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลขไม่เกิน 6 หลัก'],
             ['country', 'string', 'max' => 6, 'on' => ['update', 'gtwUpdate'], 'skipOnEmpty' => true],
         ];
