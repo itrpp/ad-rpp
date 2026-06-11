@@ -2,10 +2,30 @@
 use yii\helpers\Html;
 use yii\bootstrap5\ActiveForm;
 use common\components\LdapHelper;
+use common\components\PermissionManager;
 
-$this->title = 'Update User: ' . $model->cn;
-$this->params['breadcrumbs'][] = ['label' => 'OU Users', 'url' => ['ou-user']];
-$this->params['breadcrumbs'][] = 'Update';
+/** @var bool $readOnly */
+/** @var bool|null $canEditGtwOnly */
+$pm = new PermissionManager();
+$isSuperUserOnly = $pm->isSuperUserOnly();
+$isAdmin = $pm->isLdapAdmin();
+$canEditGtwOnly = !empty($canEditGtwOnly) || ($isSuperUserOnly && $pm->canUpdateGtwCode());
+$readOnly = ($isSuperUserOnly && !$canEditGtwOnly) || (!empty($readOnly) && !$canEditGtwOnly && !$isAdmin);
+
+$this->title = $canEditGtwOnly
+    ? ('แก้ไข GTW: ' . $model->cn)
+    : (($readOnly ? 'ดูข้อมูลผู้ใช้: ' : 'Update User: ') . $model->cn);
+$this->params['breadcrumbs'][] = ['label' => 'ผู้ลงทะเบียนรออนุมัติ', 'url' => ['ou-register']];
+$this->params['breadcrumbs'][] = $canEditGtwOnly ? 'แก้ไข GTW' : ($readOnly ? 'ดูข้อมูล' : 'Update');
+
+$roInput = ['readonly' => true, 'disabled' => true, 'class' => 'form-control bg-light'];
+$roSelect = ['disabled' => true, 'class' => 'form-control bg-light'];
+$countryEditable = $isAdmin || $canEditGtwOnly;
+$backUrl = ($readOnly || $canEditGtwOnly) ? ['ou-register'] : ['ou-user'];
+
+if ($model->country !== null && $model->country !== '') {
+    $model->country = \common\models\LdapUser::formatGtwCode($model->country);
+}
 
 // Get available OUs
 $ldap = new LdapHelper();
@@ -82,6 +102,17 @@ if (empty($ouOptions)) {
 // Debug information
 Yii::debug("Available OUs: " . print_r($ous, true));
 Yii::debug("Department Options: " . print_r($ouOptions, true));
+
+$successFlashMessage = null;
+$successModalTitle = 'อัปเดตสำเร็จ';
+$successModalDetail = 'ข้อมูลผู้ใช้ได้รับการอัปเดตเรียบร้อยแล้ว';
+if (Yii::$app->session->hasFlash('success')) {
+    $successFlashMessage = Yii::$app->session->getFlash('success');
+    if ($canEditGtwOnly) {
+        $successModalTitle = 'บันทึก GTW สำเร็จ';
+        $successModalDetail = 'เลขรหัสผู้ใช้งาน GTW ได้รับการบันทึกเรียบร้อยแล้ว';
+    }
+}
 ?>
 
 <div class="ldapuser-update">
@@ -93,16 +124,16 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                     <div class="modal-content">
                         <div class="modal-header bg-success text-white">
                             <h5 class="modal-title" id="successModalLabel">
-                                <i class="fas fa-check-circle me-2"></i>อัปเดตสำเร็จ
+                                <i class="fas fa-check-circle me-2"></i><span id="successModalTitle">อัปเดตสำเร็จ</span>
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="alert alert-success">
+                            <div class="alert alert-success mb-3">
                                 <i class="fas fa-check me-2"></i>
-                                <strong>อัปเดตข้อมูลผู้ใช้สำเร็จ!</strong>
+                                <strong id="successModalMessage">อัปเดตข้อมูลผู้ใช้สำเร็จ!</strong>
                             </div>
-                            <p class="mb-0">ข้อมูลผู้ใช้ได้รับการอัปเดตเรียบร้อยแล้ว</p>
+                            <p class="mb-0" id="successModalDetail">ข้อมูลผู้ใช้ได้รับการอัปเดตเรียบร้อยแล้ว</p>
                         </div>
                         <div class="modal-footer">
                             <button id="successModalOkBtn" type="button" class="btn btn-success" data-bs-dismiss="modal">
@@ -138,16 +169,23 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                 </div>
             </div>
 
-            <?php if (Yii::$app->session->hasFlash('success')): ?>
-                <?php Yii::$app->session->getFlash('success'); // consume เพื่อไม่ให้แสดงซ้ำ ?>
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() { showSuccessModalOnce(); });
-                </script>
+            <?php if ($successFlashMessage !== null): ?>
+                <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert" id="gtw-success-alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong><?= Html::encode($successFlashMessage) ?></strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             <?php endif; ?>
 
             <?php if (Yii::$app->session->hasFlash('error')): ?>
                 <div class="alert alert-danger">
                     <?= Yii::$app->session->getFlash('error') ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (Yii::$app->session->hasFlash('info')): ?>
+                <div class="alert alert-info">
+                    <?= Yii::$app->session->getFlash('info') ?>
                 </div>
             <?php endif; ?>
 
@@ -169,6 +207,15 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                             <?= date('d/m/Y H:i:s') ?>
                         </small>
                     </div>
+                    <?php if ($canEditGtwOnly): ?>
+                    <div class="alert alert-warning py-2 mb-0 mt-2 text-center">
+                        <i class="fas fa-edit me-1"></i> แก้ไขได้เฉพาะ <strong>เลขรหัสผู้ใช้งาน GTW</strong> — ฟิลด์อื่นเป็นแบบอ่านอย่างเดียว
+                    </div>
+                    <?php elseif ($readOnly): ?>
+                    <div class="alert alert-info py-2 mb-0 mt-2 text-center">
+                        <i class="fas fa-eye me-1"></i> โหมดดูข้อมูลอย่างเดียว — ไม่สามารถแก้ไขหรือบันทึกได้
+                    </div>
+                    <?php else: ?>
                     <div class="text-end mt-2">
                         <?= Html::a('<i class="fas fa-exchange-alt me-1"></i> Move OU', ['move', 'cn' => $model->cn], [
                             'class' => 'btn btn-warning btn-sm me-1',
@@ -176,13 +223,18 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                         ]) ?>
                         <?= Html::a('<i class="fas fa-list me-1"></i> ดูรายละเอียดทั้งหมด', ['view', 'cn' => $model->cn], ['class' => 'btn btn-outline-secondary btn-sm']) ?>
                     </div>
+                    <?php endif; ?>
                 </div>
                 <div class="card-body">
                     <?php $form = ActiveForm::begin([
                         'id' => 'update-user-form',
                         'enableAjaxValidation' => false,
-                        'enableClientValidation' => true,
-                        'options' => ['data-pjax' => true, 'onsubmit' => 'return validateForm()'],
+                        'enableClientValidation' => $isAdmin,
+                        'options' => [
+                            'data-pjax' => $isAdmin,
+                            'novalidate' => $canEditGtwOnly,
+                            'onsubmit' => $canEditGtwOnly ? 'return validateGtwForm();' : ($readOnly ? 'return false;' : 'return validateForm()'),
+                        ],
                         'fieldConfig' => [
                             'template' => "{label}\n{input}\n{error}",
                             'labelOptions' => ['class' => 'col-form-label'],
@@ -196,8 +248,8 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                             <div class="profile-image">
                                 <i class="fas fa-user-circle fa-6x text-primary"></i>
                             </div>
-                            <div class="mt-3 p-3 bg-light border rounded-3 shadow-sm fs-5">
-                                <h6 class="text-muted mb-2"><i class="fas fa-id-card me-2"></i>ข้อมูลปัจจุบัน</h6>
+                            <div class="mt-3 p-3 bg-light border rounded-3 shadow-sm fs-5 user-current-info-box">
+                                <h6 class="user-current-info-title mb-2"><i class="fas fa-id-card me-2"></i>ข้อมูลปัจจุบัน</h6>
                                 <div class="text-start">
                                     <?php 
                                     // Helper to display clean OU name (e.g., "IT-itdes" -> "IT") for read-only sections
@@ -205,13 +257,56 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                                     if (!empty($displayDepartment) && strpos($displayDepartment, '-') !== false) {
                                         $displayDepartment = trim(explode('-', $displayDepartment)[0]);
                                     }
+
+                                    // รวมคำนำหน้า + Display Name โดยไม่ซ้ำ (เช่น นาย + นายนรชัย -> นายนรชัย)
+                                    $personalTitle = trim($model->personalTitle ?? '');
+                                    $displayNameRaw = trim($model->displayName ?? '');
+                                    $displayNameShow = 'ยังไม่ระบุ';
+                                    if ($displayNameRaw !== '') {
+                                        $displayNameShow = $displayNameRaw;
+                                        if ($personalTitle !== '') {
+                                            $titleNorm = rtrim($personalTitle, '.');
+                                            $hasTitlePrefix = (mb_stripos($displayNameRaw, $personalTitle) === 0)
+                                                || (mb_stripos($displayNameRaw, $titleNorm) === 0);
+                                            if (!$hasTitlePrefix) {
+                                                $firstWord = preg_split('/\s+/u', $displayNameRaw, 2)[0] ?? '';
+                                                if ($firstWord !== ''
+                                                    && mb_strlen($firstWord) > mb_strlen($titleNorm)
+                                                    && mb_stripos($firstWord, $titleNorm) === 0) {
+                                                    $hasTitlePrefix = true;
+                                                }
+                                            }
+                                            if (!$hasTitlePrefix) {
+                                                $displayNameShow = $personalTitle . ' ' . $displayNameRaw;
+                                            }
+                                        }
+                                    }
+
+                                    $renderUserInfoRow = static function ($icon, $label, $value, $extraClass = '') {
+                                        $raw = is_scalar($value) ? trim((string) $value) : '';
+                                        $display = $raw !== '' ? $raw : 'ยังไม่ระบุ';
+                                        $copyBtn = $raw !== ''
+                                            ? '<button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline btn-copy-info" data-copy="' . Html::encode($raw) . '" title="คัดลอก" onclick="window.copyUserInfoRow(this); return false;"><i class="fas fa-copy"></i></button>'
+                                            : '';
+                                        $class = trim('d-block user-info-row ' . $extraClass);
+                                        return '<small class="' . $class . '">'
+                                            . '<strong><i class="fas ' . $icon . ' me-1"></i>' . Html::encode($label) . ':</strong> '
+                                            . '<span class="user-info-value-wrap">'
+                                            . '<span class="user-info-value">' . Html::encode($display) . '</span>'
+                                            . $copyBtn
+                                            . '</span>'
+                                            . '</small>';
+                                    };
                                     ?>
-                                    <small class="d-block"><strong><i class="fas fa-user me-1"></i>Username:</strong> <?= Html::encode($model->sAMAccountName?: 'ยังไม่ระบุ') ?></small>
-                                    <small class="d-block"><strong><i class="fas fa-signature me-1"></i>Display Name:</strong> <?= Html::encode($model->personalTitle?: '') ?> <?= Html::encode($model->displayName?: 'ยังไม่ระบุ') ?></small>
-                                    <small class="d-block"><strong><i class="fas fa-sitemap me-1"></i>Department:</strong> <?= Html::encode($displayDepartment ?: 'ยังไม่ระบุ') ?></small>
-                                    <small class="d-block"><strong><i class="fas fa-briefcase me-1"></i>ตำแหน่ง:</strong> <?= Html::encode($model->title?: 'ยังไม่ระบุ') ?></small>
-                                    <small class="d-block"><strong><i class="fas fa-envelope me-1"></i>Email:</strong> <?= Html::encode($model->mail ?: 'ยังไม่ระบุ') ?></small>
-                                    <small class="d-block"><strong><i class="fas fa-hospital me-1"></i>เลขระบบ E-phis:</strong> <?= Html::encode($model->physicalDeliveryOfficeName ?: 'ยังไม่ระบุ') ?></small>
+                                    <?= $renderUserInfoRow('fa-user', 'Username', $model->sAMAccountName ?? '') ?>
+                                    <?= $renderUserInfoRow('fa-signature', 'Display Name', $displayNameShow !== 'ยังไม่ระบุ' ? $displayNameShow : '') ?>
+                                    <?= $renderUserInfoRow('fa-id-card', 'เลขบัตรประชาชน', $model->postalCode ?? '') ?>
+                                    <?= $renderUserInfoRow('fa-language', 'ชื่อภาษาอังกฤษ', $model->description ?? '') ?>
+                                    <?= $renderUserInfoRow('fa-sitemap', 'Department', $displayDepartment ?? '') ?>
+                                    <?= $renderUserInfoRow('fa-briefcase', 'ตำแหน่ง', $model->title ?? '') ?>
+                                    <?= $renderUserInfoRow('fa-envelope', 'Email', $model->mail ?? '') ?>
+                                    <?= $renderUserInfoRow('fa-phone', 'Telephone Number', $model->telephoneNumber ?? '') ?>
+                                    <?= $renderUserInfoRow('fa-hospital', 'เลขระบบ E-phis', $model->physicalDeliveryOfficeName ?? '') ?>
                                     
                             <?php
                             $whenCreatedThai = 'ยังไม่ระบุ';
@@ -242,11 +337,10 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                                 }
                             }
                             ?>
-                            <small class="d-block"><strong>วันที่สร้างบัญชี:</strong> <?= Html::encode($whenCreatedThai) ?></small>
-                            <small class="d-block"><strong>วันที่แก้ไข:</strong> <?= Html::encode($whenChangedThai) ?></small>
-                                    
-                                    <small class="d-block"><strong>ผู้ติดต่อ(บริษัท):</strong> <?= Html::encode($model->company?: 'ยังไม่ระบุ') ?></small>
-                                    <small class="d-block"><strong>รายละเอียด :</strong> <?= Html::encode($model->streetaddress?: 'ยังไม่ระบุ') ?></small>
+                            <?= $renderUserInfoRow('fa-calendar-plus', 'วันที่สร้างบัญชี', $whenCreatedThai !== 'ยังไม่ระบุ' ? $whenCreatedThai : '', 'mt-3 pt-2 border-top') ?>
+                            <?= $renderUserInfoRow('fa-calendar-check', 'วันที่แก้ไข', $whenChangedThai !== 'ยังไม่ระบุ' ? $whenChangedThai : '') ?>
+                            <?= $renderUserInfoRow('fa-building', 'ผู้ติดต่อ(บริษัท)', $model->company ?? '') ?>
+                            <?= $renderUserInfoRow('fa-align-left', 'รายละเอียด', $model->streetaddress ?? '') ?>
 
                                 </div>
                             </div>
@@ -258,49 +352,62 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                             <div class="row g-3 fs-5">
                                 <div class="col-md-6">
                                     <?= $form->field($model, 'sAMAccountName')
-                                        ->textInput(['maxlength' => true, 'required' => true, 'placeholder' => 'เช่น user123'])
+                                        ->textInput(array_merge(['maxlength' => true, 'required' => $isAdmin, 'placeholder' => 'เช่น user123'], $isAdmin ? [] : $roInput))
                                         ->label('Username <span class="text-warning">(มีผลกับผู้ใช้ที่เคยมีประวัติ KM)</span><span class="text-danger">*</span>') ?>
                                 </div>
                                 <div class="col-md-6">
                                     <?= $form->field($model, 'displayName')
-                                        ->textInput(['maxlength' => true, 'required' => true, 'placeholder' => 'ชื่อที่แสดง'])
+                                        ->textInput(array_merge(['maxlength' => true, 'required' => $isAdmin, 'placeholder' => 'ชื่อที่แสดง'], $isAdmin ? [] : $roInput))
                                         ->label('Display Name <span class="text-danger">*</span>') ?>
                                 </div>
                                 <div class="col-md-6">
                                     <?= $form->field($model, 'department')
-                                        ->dropDownList($ouOptions, [
+                                        ->dropDownList($ouOptions, array_merge([
                                             'prompt' => 'เลือกกลุ่มงาน/ฝ่าย',
                                             'class' => 'form-control',
-                                            'required' => true
-                                        ])->label('Department <span class="text-danger">*</span>') ?>
+                                            'required' => $isAdmin,
+                                        ], $isAdmin ? [] : $roSelect))->label('Department <span class="text-danger">*</span>') ?>
                                 </div>
                                 <div class="col-md-6">
                                     <?= $form->field($model, 'title')
-                                        ->textInput(['maxlength' => true, 'required' => true, 'placeholder' => 'ตำแหน่งงาน'])
+                                        ->textInput(array_merge(['maxlength' => true, 'required' => $isAdmin, 'placeholder' => 'ตำแหน่งงาน'], $isAdmin ? [] : $roInput))
                                         ->label('ตำแหน่ง <span class="text-danger">*</span>') ?>
                                 </div>
                                 <div class="col-md-6">
+                                    <?= $form->field($model, 'physicalDeliveryOfficeName')
+                                        ->textInput(array_merge(['maxlength' => true, 'placeholder' => 'เลขระบบ E-phis (ถ้ามี)'], $isAdmin ? [] : $roInput))
+                                        ->label('เลขระบบ E-phis (ถ้ามี) ') ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <?= $form->field($model, 'country')
+                                        ->textInput(array_merge([
+                                            'maxlength' => 4,
+                                            'placeholder' => $canEditGtwOnly ? '0001' : '0001 (ไม่บังคับ)',
+                                            'inputmode' => 'numeric',
+                                            'autocomplete' => 'off',
+                                            'title' => 'ตัวเลข 4 หลัก เช่น 0001' . ($canEditGtwOnly ? ' (บังคับกรอก)' : ' (ไม่บังคับ)'),
+                                        ], $canEditGtwOnly ? [] : ['pattern' => '[0-9]{4}'], $countryEditable ? ['class' => 'form-control gtw-code-input'] : $roInput))
+                                        ->label('เลขรหัสผู้ใช้งาน GTW' . ($canEditGtwOnly ? ' <span class="text-danger">*</span>' : '')) ?>
+                                </div>
+                                <div class="w-100"></div>
+                                <div class="col-md-6">
                                     <?= $form->field($model, 'mail')
-                                        ->textInput(['maxlength' => true, 'placeholder' => 'someone@example.com'])
+                                        ->textInput(array_merge(['maxlength' => true, 'placeholder' => 'someone@example.com'], $isAdmin ? [] : $roInput))
                                         ->label('Email') ?>
                                 </div>
                                 <div class="col-md-6">
-                                    <?= $form->field($model, 'physicalDeliveryOfficeName')
-                                        ->textInput(['maxlength' => true, 'placeholder' => 'เลขระบบ E-phis (ถ้ามี)'])
-                                        ->label('เลขระบบ E-phis (ถ้ามี) ') ?>
-                                </div>
-                                <div class="col-12">
                                     <?= $form->field($model, 'telephoneNumber')
-                                        ->textInput(['class' => 'form-control', 'placeholder' => 'ยังไม่ระบุ'])
+                                        ->textInput(array_merge(['class' => 'form-control', 'placeholder' => 'ยังไม่ระบุ'], $isAdmin ? [] : $roInput))
                                         ->label('Telephone Number') ?>
                                 </div>
                                 
                             </div>
                         </div>
                     </div>
+                    <?php if ($isAdmin): ?>
                     <hr>
 
-                    <!-- Group Assignment Section -->
+                    <!-- Group Assignment Section (Admin เท่านั้น) -->
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card mb-3">
@@ -327,7 +434,6 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                                                 </button>
                                                 <div id="groupAssignmentMessage" class="mt-2"></div>
                                             </div>
-
 
                                             <div class="col-md-6">
                                                 <h6><i class="fas fa-list fa-sm me-2"></i>กลุ่มที่ผู้ใช้เป็นสมาชิกอยู่</h6>
@@ -361,14 +467,23 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
                                     <?= Html::label('Reset Password (ตั้งเป็น 1234 อัตโนมัติ)', 'resetPasswordCheckbox', ['class' => 'form-check-label']) ?>
                                 </div>
                             </div>
-                            <!-- Removed manual password inputs: reset sets default 123456 automatically -->
                         </div>
                     </div>
 
                     <div class="form-group text-end">
                         <?= Html::submitButton('<i class="fas fa-save me-2"></i>Update User', ['class' => 'btn btn-primary']) ?>
-                        <?= Html::a('<i class="fas fa-times me-2"></i>Cancel', ['ou-user'], ['class' => 'btn btn-default']) ?>
+                        <?= Html::a('<i class="fas fa-times me-2"></i>Cancel', $backUrl, ['class' => 'btn btn-default']) ?>
                     </div>
+                    <?php elseif ($canEditGtwOnly): ?>
+                    <div class="form-group text-end mt-3">
+                        <?= Html::submitButton('<i class="fas fa-save me-2"></i>บันทึก GTW', ['class' => 'btn btn-primary']) ?>
+                        <?= Html::a('<i class="fas fa-arrow-left me-2"></i>กลับรายการรออนุมัติ', ['ou-register'], ['class' => 'btn btn-secondary']) ?>
+                    </div>
+                    <?php else: ?>
+                    <div class="text-end mt-3">
+                        <?= Html::a('<i class="fas fa-arrow-left me-2"></i>กลับรายการรออนุมัติ', ['ou-register'], ['class' => 'btn btn-secondary']) ?>
+                    </div>
+                    <?php endif; ?>
                     
                     <!-- Change Summary -->
                     <!-- <div class="mt-4">
@@ -392,6 +507,41 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
 </div>
 
 <style>
+.user-current-info-box .user-current-info-title,
+.user-current-info-box strong {
+    color: #5c3d1e;
+    font-weight: 600;
+}
+.user-current-info-box small.d-block {
+    color: #1976d2;
+    font-weight: 300;
+}
+.user-current-info-box small.d-block strong {
+    color: #5c3d1e;
+    font-weight: 600;
+}
+.user-current-info-box small.d-block strong i {
+    color: #5c3d1e;
+}
+.user-current-info-box .btn-copy-info {
+    color: #6c757d;
+    font-size: 0.75rem;
+    line-height: 1;
+    vertical-align: middle;
+    text-decoration: none;
+    cursor: pointer;
+    pointer-events: auto;
+}
+.user-current-info-box .btn-copy-info:hover,
+.user-current-info-box .btn-copy-info:hover i {
+    color: #1976d2;
+}
+.user-current-info-box .btn-copy-info i {
+    color: #6c757d;
+}
+.user-current-info-box .btn-copy-info .fa-check {
+    color: #198754 !important;
+}
 .ldapuser-update {
     padding: 20px;
 }
@@ -486,6 +636,64 @@ Yii::debug("Department Options: " . print_r($ouOptions, true));
 </style>
 
 <?php
+$this->registerJs(<<<'JS'
+window.copyUserInfoRow = function (btn) {
+    if (!btn) return false;
+
+    var row = btn.closest('.user-info-row');
+    var valueEl = row ? row.querySelector('.user-info-value') : null;
+    var text = valueEl ? valueEl.textContent.trim() : (btn.getAttribute('data-copy') || '');
+    if (!text || text === 'ยังไม่ระบุ') return false;
+
+    var icon = btn.querySelector('i');
+    var showOk = function () {
+        if (!icon) return;
+        icon.classList.remove('fa-copy');
+        icon.classList.add('fa-check');
+        setTimeout(function () {
+            icon.classList.remove('fa-check');
+            icon.classList.add('fa-copy');
+        }, 1500);
+    };
+
+    var copied = false;
+    try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '0';
+        ta.style.left = '0';
+        ta.style.width = '2em';
+        ta.style.height = '2em';
+        ta.style.padding = '0';
+        ta.style.border = 'none';
+        ta.style.outline = 'none';
+        ta.style.boxShadow = 'none';
+        ta.style.background = 'transparent';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        ta.setSelectionRange(0, text.length);
+        copied = document.execCommand('copy');
+        document.body.removeChild(ta);
+    } catch (err) {
+        copied = false;
+    }
+
+    if (copied) {
+        showOk();
+        return false;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showOk).catch(function () {});
+    }
+    return false;
+};
+JS
+, \yii\web\View::POS_HEAD);
+
 // Prepare JavaScript configuration
 $ldap = new LdapHelper();
 $user = $ldap->getUser($model->cn);
@@ -498,6 +706,9 @@ if ($user && isset($user['distinguishedname'])) {
 
 $jsConfig = [
     'userDn' => Html::encode($userDn),
+    'readOnly' => $readOnly && !$canEditGtwOnly,
+    'isSuperUserOnly' => $isSuperUserOnly,
+    'canEditGtwOnly' => $canEditGtwOnly,
     'csrfParam' => Yii::$app->request->csrfParam,
     'csrfToken' => Yii::$app->request->getCsrfToken(),
     'urls' => [
@@ -508,23 +719,101 @@ $jsConfig = [
     ],
 ];
 
-// Register config first, then the JS file
-$this->registerJs('userUpdateConfig = ' . json_encode($jsConfig) . ';', \yii\web\View::POS_HEAD);
-$this->registerJsFile('@web/js/user-update.js', [
-    'depends' => [\yii\web\JqueryAsset::class],
-    'position' => \yii\web\View::POS_END
-]);
+// Group assignment JS — เฉพาะ Admin (ไม่โหลดสำหรับ ManageUser)
+if (!$isSuperUserOnly) {
+    $this->registerJs('userUpdateConfig = ' . json_encode($jsConfig) . ';', \yii\web\View::POS_HEAD);
+    $this->registerJsFile('@web/js/user-update.js', [
+        'depends' => [\yii\web\JqueryAsset::class],
+        'position' => \yii\web\View::POS_END
+    ]);
+}
 ?>
 
 <script>
 // แสดง modal อัปเดตสำเร็จแค่ครั้งเดียว (กันเด้ง 2 รอบ)
-function showSuccessModalOnce() {
+function showSuccessModalOnce(options) {
+    options = options || {};
     var el = document.getElementById('successModal');
     if (!el) return;
     if (window._successModalShownAt && (Date.now() - window._successModalShownAt < 3000)) return;
     window._successModalShownAt = Date.now();
+
+    if (options.title) {
+        var titleEl = document.getElementById('successModalTitle');
+        if (titleEl) titleEl.textContent = options.title;
+    }
+    if (options.message) {
+        var msgEl = document.getElementById('successModalMessage');
+        if (msgEl) msgEl.textContent = options.message;
+    }
+    if (options.detail) {
+        var detailEl = document.getElementById('successModalDetail');
+        if (detailEl) detailEl.textContent = options.detail;
+    }
+
     var modal = bootstrap.Modal.getOrCreateInstance(el);
     modal.show();
+}
+
+<?php if ($successFlashMessage !== null): ?>
+// แจ้งเตือนบันทึกสำเร็จ (รอโหลดครบทุก asset รวม Bootstrap)
+(function() {
+    var successOptions = {
+        title: <?= json_encode($successModalTitle, JSON_UNESCAPED_UNICODE) ?>,
+        message: <?= json_encode($successFlashMessage, JSON_UNESCAPED_UNICODE) ?>,
+        detail: <?= json_encode($successModalDetail, JSON_UNESCAPED_UNICODE) ?>
+    };
+    function notifySuccess() {
+        var alertEl = document.getElementById('gtw-success-alert');
+        if (alertEl) {
+            alertEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        if (typeof showSuccessModalOnce === 'function' && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            showSuccessModalOnce(successOptions);
+        }
+    }
+    if (document.readyState === 'complete') {
+        notifySuccess();
+    } else {
+        window.addEventListener('load', notifySuccess);
+    }
+})();
+<?php endif; ?>
+
+// Validation: GTW code must be exactly 4 digits (รองรับ 0001)
+function padGtwCode(value) {
+    var digits = String(value || '').replace(/\D/g, '');
+    if (digits === '') {
+        return '';
+    }
+    if (digits.length > 4) {
+        digits = digits.slice(-4);
+    }
+    while (digits.length < 4) {
+        digits = '0' + digits;
+    }
+    return digits;
+}
+
+function validateGtwForm() {
+    const gtwField = document.getElementById('ldapuser-country');
+    if (!gtwField) {
+        return true;
+    }
+    gtwField.value = padGtwCode(gtwField.value);
+    const val = gtwField.value.trim();
+    if (val === '') {
+        alert('กรุณากรอกเลขรหัสผู้ใช้งาน GTW');
+        gtwField.focus();
+        return false;
+    }
+    if (!/^\d{4}$/.test(val)) {
+        alert('เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลข 4 หลัก');
+        gtwField.focus();
+        gtwField.select();
+        return false;
+    }
+    return true;
 }
 
 // Validation function to check for empty fields
@@ -558,6 +847,21 @@ function validateForm() {
         }
     }
     
+    // GTW code (Admin): ไม่บังคับ แต่ถ้ากรอกต้องเป็นตัวเลข 4 หลัก (รองรับ 0001)
+    const gtwField = document.getElementById('ldapuser-country');
+    if (gtwField && !gtwField.disabled && !gtwField.readOnly) {
+        if (gtwField.value.trim() !== '') {
+            gtwField.value = padGtwCode(gtwField.value);
+        }
+        const gtwVal = gtwField.value.trim();
+        if (gtwVal !== '' && !/^\d{4}$/.test(gtwVal)) {
+            alert('เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลข 4 หลัก');
+            gtwField.focus();
+            gtwField.select();
+            return false;
+        }
+    }
+
     const emptyFields = [];
     let firstEmptyField = null;
     
@@ -619,7 +923,8 @@ function focusFirstEmptyField() {
     }
 }
 
-// Handle form submission with AJAX
+// Handle form submission with AJAX (Admin เท่านั้น)
+<?php if ($isAdmin): ?>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('update-user-form');
     if (form) {
@@ -701,8 +1006,70 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+<?php endif; ?>
 
-// Add real-time validation feedback
+<?php if ($canEditGtwOnly): ?>
+// ManageUser: pad ก่อน submit 1 ครั้ง (แก้ปัญหาต้องกดบันทึก 2 รอบ)
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.getElementById('update-user-form');
+    var gtwField = document.getElementById('ldapuser-country');
+    var submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+    if (gtwField && gtwField.value.trim() !== '') {
+        gtwField.value = padGtwCode(gtwField.value);
+    }
+    if (submitBtn) {
+        submitBtn.addEventListener('mousedown', function() {
+            if (gtwField) {
+                gtwField.value = padGtwCode(gtwField.value);
+            }
+        });
+    }
+});
+<?php endif; ?>
+
+<?php if ($countryEditable): ?>
+// GTW: รับเฉพาะตัวเลข สูงสุด 4 หลัก (รองรับ 0001)
+document.addEventListener('DOMContentLoaded', function() {
+    const gtwField = document.getElementById('ldapuser-country');
+    if (!gtwField || gtwField.disabled || gtwField.readOnly) {
+        return;
+    }
+    if (gtwField.value.trim() !== '') {
+        gtwField.value = padGtwCode(gtwField.value);
+    }
+    gtwField.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0, 4);
+        if (/^\d{4}$/.test(this.value)) {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        } else {
+            this.classList.remove('is-valid');
+            if (this.value.length > 0) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+            }
+        }
+    });
+    gtwField.addEventListener('blur', function() {
+        if (this.value.trim() === '') {
+            this.classList.remove('is-invalid', 'is-valid');
+            return;
+        }
+        this.value = padGtwCode(this.value);
+        if (/^\d{4}$/.test(this.value)) {
+            this.classList.remove('is-invalid');
+            this.classList.add('is-valid');
+        } else {
+            this.classList.add('is-invalid');
+            this.classList.remove('is-valid');
+        }
+    });
+});
+<?php endif; ?>
+
+// Add real-time validation feedback (Admin เท่านั้น)
+<?php if ($isAdmin): ?>
 document.addEventListener('DOMContentLoaded', function() {
     const requiredFields = [
         'ldapuser-samaccountname',
@@ -837,6 +1204,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+<?php endif; ?>
 
 
 <?php

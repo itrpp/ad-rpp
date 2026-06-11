@@ -30,6 +30,7 @@ if (!$isSuperUser && !Yii::$app->user->isGuest) {
 }
 $canCreateAdUsers = $permissionManager->hasPermission(PermissionManager::PERMISSION_AD_USER_CREATE);
 $canViewLdapUsers = $permissionManager->hasPermission(PermissionManager::PERMISSION_LDAP_USER_VIEW);
+$canViewOuRegister = $permissionManager->canViewOuRegister();
 
 // Get Register OU user count
 $registerUserCount = 0;
@@ -294,12 +295,12 @@ if (!Yii::$app->user->isGuest) {
                     </li>
                     <?php endif; ?>
 
-                    <?php if ($isAdmin): ?>
+                    <?php if ($canViewOuRegister): ?>
                     <li class="nav-item">
                         <a href="<?= Yii::$app->urlManager->createUrl(['ldapuser/ou-register']) ?>" class="nav-link">
-                            <i class="nav-icon fas fa-user-plus"></i>
+                            <i class="nav-icon fas fa-user-clock"></i>
                             <p>
-                                UserRegister
+                                ผู้ลงทะเบียนรออนุมัติ
                                 <?php if ($registerUserCount > 0): ?>
                                     <span class="badge badge-info right"><?= $registerUserCount ?></span>
                                 <?php endif; ?>

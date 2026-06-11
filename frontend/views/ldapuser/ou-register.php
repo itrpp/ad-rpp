@@ -11,11 +11,12 @@ if (Yii::$app->user->isGuest) {
     throw new ForbiddenHttpException('You are not allowed to access this page. Please login first.');
 }
 
-// Check if user has admin permissions
 $permissionManager = new PermissionManager();
-if (!$permissionManager->isLdapAdmin()) {
-    throw new ForbiddenHttpException('คุณไม่มีสิทธิ์ในการเข้าถึงหน้านี้ เฉพาะผู้ดูแลระบบเท่านั้น');
+if (!$permissionManager->canViewOuRegister()) {
+    throw new ForbiddenHttpException('คุณไม่มีสิทธิ์ในการเข้าถึงหน้ารายการผู้ลงทะเบียนรออนุมัติ');
 }
+$canManageRegister = $permissionManager->canManageOuRegister();
+$isSuperUserOnly = $permissionManager->isSuperUserOnly();
 
 $this->title = 'Organizational Unit Register';
 
@@ -255,14 +256,22 @@ a {
                                         <?php endif; ?>
                                     </td>
                                     <td>
+                                        <?php if ($isSuperUserOnly): ?>
                                         <div class="btn-group">
                                             <?= Html::a('<i class="fas fa-edit"></i>', ['update', 'cn' => $cn], [
                                                 'class' => 'btn btn-sm btn-primary',
-                                                'title' => 'แก้ไขข้อมูลผู้ใช้: ' . Html::encode($displayName ?: $username),
+                                                'title' => 'แก้ไข GTW: ' . Html::encode($displayName ?: $username),
+                                            ]) ?>
+                                        </div>
+                                        <?php elseif ($canManageRegister): ?>
+                                        <div class="btn-group">
+                                            <?= Html::a('<i class="fas fa-edit"></i>', ['update', 'cn' => $cn], [
+                                                'class' => 'btn btn-sm btn-primary',
+                                                'title' => 'แก้ไขข้อมูล/สิทธิ์/กลุ่ม: ' . Html::encode($displayName ?: $username),
                                             ]) ?>
                                             <?= Html::a('<i class="fas fa-exchange-alt"></i>', ['move', 'cn' => $cn], [
                                                 'class' => 'btn btn-sm btn-warning',
-                                                'title' => 'Move',
+                                                'title' => 'ย้าย OU (อนุมัติ)',
                                                 'method' => 'post',
                                             ]) ?>
                                             <button type="button" class="btn btn-sm btn-danger delete-user" 
@@ -274,6 +283,7 @@ a {
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

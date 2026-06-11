@@ -29,12 +29,12 @@ class LdapuserController extends Controller
                         'roles' => ['?', '@'],
                     ],
                     [
-                        'actions' => ['ou-register'], // Admin only page
+                        'actions' => ['ou-register'], // Admin หรือ SuperUser (ManageUser)
                         'allow' => true,
                         'roles' => ['@'],
                         'matchCallback' => function ($rule, $action) {
                             $permissionManager = new PermissionManager();
-                            return $permissionManager->isLdapAdmin();
+                            return $permissionManager->canViewOuRegister();
                         }
                     ],
                     [
@@ -83,38 +83,27 @@ class LdapuserController extends Controller
      */
     protected function hasPermission($action)
     {
-        $userData = $this->getCurrentUserLdapData();
-        if (!$userData) {
+        $pm = new PermissionManager();
+
+        if ($pm->isLdapAdmin()) {
+            return true;
+        }
+
+        $actionPermissions = [
+            'ou-register' => PermissionManager::PERMISSION_LDAP_REGISTER_VIEW,
+            'update' => PermissionManager::PERMISSION_LDAP_REGISTER_MANAGE,
+            'move' => PermissionManager::PERMISSION_LDAP_REGISTER_MANAGE,
+            'move-to-user' => PermissionManager::PERMISSION_LDAP_REGISTER_MANAGE,
+            'ou-user' => PermissionManager::PERMISSION_LDAP_USER_VIEW,
+            'ou-outs' => PermissionManager::PERMISSION_LDAP_USER_VIEW,
+            'index' => PermissionManager::PERMISSION_LDAP_USER_VIEW,
+        ];
+
+        if (!isset($actionPermissions[$action])) {
             return false;
         }
 
-        // Check if user is in admin group or has specific permissions
-        $userGroups = isset($userData['memberof']) ? $userData['memberof'] : [];
-        $isAdmin = false;
-        
-        // Check for IT OU membership
-        $isITUser = false;
-        if (isset($userData['distinguishedname'])) {
-            $dn = $userData['distinguishedname'];
-            if (stripos($dn, 'OU=IT,OU=rpp-user,DC=rpphosp,DC=local') !== false) {
-                $isITUser = true;
-            }
-        }
-
-        foreach ($userGroups as $group) {
-            if (stripos($group, 'CN=Administrators') !== false || 
-                stripos($group, 'CN=Domain Admins') !== false) {
-                $isAdmin = true;
-                break;
-            }
-        }
-
-        // IT OU users are considered admins
-        if ($isITUser) {
-            $isAdmin = true;
-        }
-
-        return $isAdmin;
+        return $pm->hasPermission($actionPermissions[$action]);
     }
 
     public function actionIndex()
@@ -275,8 +264,17 @@ class LdapuserController extends Controller
 
     public function actionUpdate($cn)
     {
-        // Check if user has permission to update users
-        if (!$this->hasPermission('update')) {
+        $pm = new PermissionManager();
+        $isSuperUserOnly = $pm->isSuperUserOnly();
+        $canEditGtwOnly = $isSuperUserOnly && $pm->canUpdateGtwCode();
+        $readOnly = $isSuperUserOnly && !$canEditGtwOnly;
+
+        if ($isSuperUserOnly) {
+            if (!$pm->canViewRegisterUserDetail()) {
+                Yii::$app->session->setFlash('error', 'คุณไม่มีสิทธิ์ในการดูข้อมูลผู้ใช้');
+                return $this->redirect(['ou-register']);
+            }
+        } elseif (!$this->hasPermission('update')) {
             Yii::$app->session->setFlash('error', 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูลผู้ใช้');
             return $this->redirect(['ou-user']);
         }
@@ -295,7 +293,67 @@ class LdapuserController extends Controller
             return $this->redirect(['ou-user']);
         }
 
+        if ($canEditGtwOnly) {
+            $ldapCheck = new LdapHelper();
+            $ldapUser = $ldapCheck->getUser($cn);
+            $userDn = '';
+            if ($ldapUser && isset($ldapUser['distinguishedname'])) {
+                $userDn = is_array($ldapUser['distinguishedname'])
+                    ? $ldapUser['distinguishedname'][0]
+                    : $ldapUser['distinguishedname'];
+            }
+            if (stripos($userDn, 'OU=rpp-register') === false) {
+                Yii::$app->session->setFlash('error', 'สามารถแก้ไข GTW ได้เฉพาะผู้ใช้ในรายการรออนุมัติ');
+                return $this->redirect(['ou-register']);
+            }
+        }
+
+        $originalCountry = LdapUser::formatGtwCode($model->country);
+
         if ($model->load(Yii::$app->request->post())) {
+            if ($canEditGtwOnly) {
+                $model->scenario = 'gtwUpdate';
+                $gtwCode = LdapUser::formatGtwCode($model->country ?? '');
+                $model->country = $gtwCode;
+                $originalTrimmed = $originalCountry;
+
+                if (!$model->validate()) {
+                    Yii::$app->session->setFlash('error', implode(', ', $model->getFirstErrors()));
+                    return $this->render('update', [
+                        'model' => $model,
+                        'readOnly' => false,
+                        'canEditGtwOnly' => true,
+                    ]);
+                }
+
+                if ($gtwCode === $originalTrimmed) {
+                    Yii::$app->session->setFlash('info', 'ไม่มีการเปลี่ยนแปลง');
+                    return $this->redirect(['update', 'cn' => $model->cn]);
+                }
+
+                $ldap = new LdapHelper();
+                $principal = !empty($model->sAMAccountName) ? $model->sAMAccountName : $model->cn;
+                if ($ldap->updateUser($principal, ['countryCode' => $gtwCode])) {
+                    $currentUser = $this->getCurrentUserLdapData();
+                    $currentUsername = $currentUser['samaccountname'] ?? 'Unknown';
+                    Yii::info("User {$currentUsername} updated GTW code for {$model->cn}: {$gtwCode}", 'ldap');
+                    Yii::$app->session->setFlash('success', 'บันทึกเลขรหัสผู้ใช้งาน GTW (' . $gtwCode . ') สำเร็จ');
+                    return $this->redirect(['update', 'cn' => $model->cn]);
+                }
+
+                Yii::$app->session->setFlash('error', 'ไม่สามารถบันทึกเลขรหัสผู้ใช้งาน GTW ได้');
+                return $this->render('update', [
+                    'model' => $model,
+                    'readOnly' => false,
+                    'canEditGtwOnly' => true,
+                ]);
+            }
+
+            if ($readOnly) {
+                Yii::$app->session->setFlash('error', 'คุณมีสิทธิ์ดูข้อมูลอย่างเดียว ไม่สามารถบันทึกการแก้ไขได้');
+                return $this->render('update', ['model' => $model, 'readOnly' => true, 'canEditGtwOnly' => false]);
+            }
+
             Yii::debug("Form data received: " . print_r($model->attributes, true));
             
             // Validate the model first
@@ -313,7 +371,7 @@ class LdapuserController extends Controller
                 }
                 
                 Yii::$app->session->setFlash('error', implode(', ', $errors));
-                return $this->render('update', [ 'model' => $model ]);
+                return $this->render('update', ['model' => $model, 'readOnly' => $readOnly]);
             }
             
             // Additional server-side validation checks
@@ -336,16 +394,20 @@ class LdapuserController extends Controller
                     ]);
                 }
                 Yii::$app->session->setFlash('error', implode(', ', $validationErrors));
-                return $this->render('update', [ 'model' => $model ]);
+                return $this->render('update', ['model' => $model, 'readOnly' => $readOnly]);
             }
 
             try {
                 // Only include fields that are actually in the form
                 $updateData = [];
-                $fields = ['sAMAccountName', 'displayName', 'department', 'title', 'mail', 'physicalDeliveryOfficeName', 'telephoneNumber'];
+                $fields = ['sAMAccountName', 'displayName', 'department', 'title', 'mail', 'physicalDeliveryOfficeName', 'telephoneNumber', 'country'];
                 foreach ($fields as $field) {
                     if (isset($model->$field)) {
-                        $updateData[$field] = $model->$field;
+                        if ($field === 'country') {
+                            $updateData['countryCode'] = $model->$field;
+                        } else {
+                            $updateData[$field] = $model->$field;
+                        }
                         Yii::debug("Including field $field with value: {$model->$field}");
                     }
                 }
@@ -480,7 +542,11 @@ class LdapuserController extends Controller
             }
         }
 
-        return $this->render('update', [ 'model' => $model ]);
+        return $this->render('update', [
+            'model' => $model,
+            'readOnly' => $readOnly,
+            'canEditGtwOnly' => $canEditGtwOnly,
+        ]);
     }
 
     public function actionDelete($cn)
@@ -1177,10 +1243,9 @@ class LdapuserController extends Controller
     }
     public function actionOuRegister()
     {
-        // Check if user has admin permissions
         $permissionManager = new PermissionManager();
-        if (!$permissionManager->isLdapAdmin()) {
-            Yii::$app->session->setFlash('error', 'คุณไม่มีสิทธิ์ในการเข้าถึงหน้านี้ เฉพาะผู้ดูแลระบบเท่านั้น');
+        if (!$permissionManager->canViewOuRegister()) {
+            Yii::$app->session->setFlash('error', 'คุณไม่มีสิทธิ์ในการเข้าถึงหน้ารายการผู้ลงทะเบียนรออนุมัติ');
             return $this->redirect(['index']);
         }
         

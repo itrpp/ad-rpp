@@ -1,6 +1,7 @@
 <?php
 use yii\helpers\Html;
 use yii\widgets\DetailView;
+use common\models\LdapUser;
 
 $this->title = isset($user['cn'][0]) ? $user['cn'][0] : 'User Details';
 $this->params['breadcrumbs'][] = ['label' => 'OU Users', 'url' => ['ou-user']];
@@ -126,7 +127,7 @@ $this->params['breadcrumbs'][] = $this->title;
                             ['label' => 'จังหวัด (State)', 'value' => $user['st'][0] ?? ''],
                             ['label' => 'รหัสไปรษณีย์ (Postal Code)', 'value' => $user['postalcode'][0] ?? ''],
                             ['label' => 'ตู้ไปรษณีย์ (Post Office Box)', 'value' => $user['postofficebox'][0] ?? ''],
-                            ['label' => 'ประเทศ (Country Code)', 'value' => $user['countrycode'][0] ?? ''],
+                            ['label' => 'ประเทศ (Country Code) (ยืมบันทึกเลขรหัสผู้ใช้งาน GTW)', 'value' => LdapUser::formatGtwCode($user['countrycode'][0] ?? '')],
                             ['label' => 'สำนักงาน (ยืมมาใช้บันทึกเลขรหัสจากระบบ E-phis)', 'value' => $user['physicaldeliveryofficename'][0] ?? ''],
                         ]
                     ]) ?>

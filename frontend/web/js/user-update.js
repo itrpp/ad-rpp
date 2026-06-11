@@ -340,6 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     const config = userUpdateConfig;
+    const readOnly = !!config.readOnly;
     const userDn = config.userDn || '';
     const csrfParam = config.csrfParam || '';
     const csrfToken = config.csrfToken || '';
@@ -391,18 +392,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.groups && data.groups.length > 0) {
                     let html = '<ul class="list-group list-group-flush">';
                     data.groups.forEach(group => {
+                        const removeBtn = readOnly ? '' : `
+                                <button type="button" class="btn btn-sm btn-danger btn-remove-from-group" 
+                                        data-group-dn="${escapeHtml(group.dn)}" 
+                                        data-group-cn="${escapeHtml(group.cn)}"
+                                        title="ลบออกจากกลุ่ม">
+                                    <i class="fas fa-times"></i>
+                                </button>`;
                         html += `
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <div>
                                     <strong>${escapeHtml(group.cn)}</strong>
                                     ${group.description ? '<br><small class="text-muted">' + escapeHtml(group.description) + '</small>' : ''}
                                 </div>
-                                <button type="button" class="btn btn-sm btn-danger btn-remove-from-group" 
-                                        data-group-dn="${escapeHtml(group.dn)}" 
-                                        data-group-cn="${escapeHtml(group.cn)}"
-                                        title="ลบออกจากกลุ่ม">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                                ${removeBtn}
                             </li>
                         `;
                     });
@@ -608,16 +611,23 @@ document.addEventListener('DOMContentLoaded', function() {
         btnAddToGroup.addEventListener('click', addUserToGroup);
     }
     
-    // Load data when collapse is opened the first time
+    // Load data when collapse is opened the first time (or immediately in read-only mode)
     let groupDataLoaded = false;
     const groupAssignmentSection = document.getElementById('groupAssignmentSection');
-    if (groupAssignmentSection) {
-        groupAssignmentSection.addEventListener('shown.bs.collapse', function () {
-            if (!groupDataLoaded && userDn) {
-                loadUserGroups();
+    function loadGroupDataOnce() {
+        if (!groupDataLoaded && userDn) {
+            loadUserGroups();
+            if (!readOnly) {
                 loadAvailableGroups();
-                groupDataLoaded = true;
             }
+            groupDataLoaded = true;
+        }
+    }
+    if (readOnly && userDn) {
+        loadGroupDataOnce();
+    } else if (groupAssignmentSection) {
+        groupAssignmentSection.addEventListener('shown.bs.collapse', function () {
+            loadGroupDataOnce();
         });
     }
 });

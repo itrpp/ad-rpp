@@ -169,6 +169,10 @@ class LdapHelper
                     $ldapData['telephoneNumber'] = [];
                     Yii::debug("Removing telephone number attribute");
                 }
+            } elseif ($key === 'country' || $key === 'countryCode') {
+                $stringValue = is_array($value) ? (isset($value[0]) ? $value[0] : '') : $value;
+                $ldapData['countryCode'] = [$stringValue];
+                Yii::debug("Adding countryCode with value: $stringValue");
             } elseif ($key !== 'newPassword' && $key !== 'confirmPassword') { // Skip empty password and confirm password
                 // Keep original case of attribute names
                 // Ensure value is a string, not an array

@@ -89,6 +89,12 @@ class PermissionManager
     const PERMISSION_LDAP_USER_DELETE = 'ldapUserDelete';
     const PERMISSION_LDAP_USER_MOVE = 'ldapUserMove';
     const PERMISSION_LDAP_USER_TOGGLE_STATUS = 'ldapUserToggleStatus';
+    /** ดูรายการผู้ใช้ที่ลงทะเบียนรออนุมัติ (OU Register) */
+    const PERMISSION_LDAP_REGISTER_VIEW = 'ldapRegisterView';
+    /** อนุมัติ/แก้ไข/ย้ายผู้ใช้ที่ลงทะเบียน + จัดการกลุ่ม */
+    const PERMISSION_LDAP_REGISTER_MANAGE = 'ldapRegisterManage';
+    /** ManageUser: แก้ไขเลขรหัสผู้ใช้งาน GTW (countryCode) อย่างเดียว */
+    const PERMISSION_LDAP_GTW_UPDATE = 'ldapGtwUpdate';
     // Group management
     const PERMISSION_GROUP_VIEW = 'groupView';
     const PERMISSION_GROUP_CREATE = 'groupCreate';
@@ -124,16 +130,52 @@ class PermissionManager
             return true;
         }
 
-        // Superuser: allow ONLY view permissions
-        $superUserViewPermissions = [
+        // Superuser (CN=ManageUser): ดู + แก้ไข GTW อย่างเดียว
+        $superUserPermissions = [
             self::PERMISSION_AD_USER_VIEW,
             self::PERMISSION_LDAP_USER_VIEW,
+            self::PERMISSION_LDAP_REGISTER_VIEW,
+            self::PERMISSION_LDAP_GTW_UPDATE,
         ];
-        if ($this->isSuperUser() && in_array($permission, $superUserViewPermissions, true)) {
+        if ($this->isSuperUser() && in_array($permission, $superUserPermissions, true)) {
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * ดูหน้ารายการผู้ใช้ที่ลงทะเบียนรออนุมัติ (UserRegister)
+     */
+    public function canViewOuRegister()
+    {
+        return $this->isLdapAdmin()
+            || $this->hasPermission(self::PERMISSION_LDAP_REGISTER_VIEW);
+    }
+
+    /**
+     * อนุมัติ/แก้ไข/ย้ายผู้ใช้ที่ลงทะเบียน
+     */
+    public function canManageOuRegister()
+    {
+        return $this->isLdapAdmin();
+    }
+
+    /**
+     * เปิดหน้ารายละเอียดผู้ลงทะเบียน (read-only สำหรับ ManageUser)
+     */
+    public function canViewRegisterUserDetail()
+    {
+        return $this->canViewOuRegister();
+    }
+
+    /**
+     * ManageUser: แก้ไขเลขรหัสผู้ใช้งาน GTW (countryCode) อย่างเดียว
+     */
+    public function canUpdateGtwCode()
+    {
+        return $this->isSuperUserOnly()
+            && $this->hasPermission(self::PERMISSION_LDAP_GTW_UPDATE);
     }
     
     /**
@@ -755,6 +797,9 @@ class PermissionManager
             self::PERMISSION_LDAP_USER_DELETE => 'Delete LDAP Users',
             self::PERMISSION_LDAP_USER_MOVE => 'Move LDAP Users',
             self::PERMISSION_LDAP_USER_TOGGLE_STATUS => 'Toggle LDAP User Status',
+            self::PERMISSION_LDAP_REGISTER_VIEW => 'View Registration OU (pending users)',
+            self::PERMISSION_LDAP_REGISTER_MANAGE => 'Manage Registration OU (approve/edit/move)',
+            self::PERMISSION_LDAP_GTW_UPDATE => 'Update GTW user code (countryCode) only',
             // Group permissions
             self::PERMISSION_GROUP_VIEW => 'View AD Groups',
             self::PERMISSION_GROUP_CREATE => 'Create AD Groups',
@@ -820,6 +865,8 @@ class PermissionManager
             self::PERMISSION_LDAP_USER_DELETE,
             self::PERMISSION_LDAP_USER_MOVE,
             self::PERMISSION_LDAP_USER_TOGGLE_STATUS,
+            self::PERMISSION_LDAP_REGISTER_VIEW,
+            self::PERMISSION_LDAP_REGISTER_MANAGE,
             self::PERMISSION_GROUP_VIEW,
             self::PERMISSION_GROUP_CREATE,
             self::PERMISSION_GROUP_UPDATE,
@@ -834,10 +881,12 @@ class PermissionManager
             }
         }
         
-        // Superuser gets ONLY view permissions (no create/update/delete)
+        // Superuser (ManageUser): ดู + แก้ไข GTW อย่างเดียว
         $superUserPermissions = [
             self::PERMISSION_AD_USER_VIEW,
             self::PERMISSION_LDAP_USER_VIEW,
+            self::PERMISSION_LDAP_REGISTER_VIEW,
+            self::PERMISSION_LDAP_GTW_UPDATE,
         ];
         
         foreach ($superUserPermissions as $permissionName) {

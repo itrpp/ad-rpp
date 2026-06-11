@@ -21,6 +21,7 @@ $isSuperUser = $permissionManager->isSuperUser();
 $canViewAdUsers = $permissionManager->hasPermission(PermissionManager::PERMISSION_AD_USER_VIEW);
 $canCreateAdUsers = $permissionManager->hasPermission(PermissionManager::PERMISSION_AD_USER_CREATE);
 $canViewLdapUsers = $permissionManager->hasPermission(PermissionManager::PERMISSION_LDAP_USER_VIEW);
+$canViewOuRegister = $permissionManager->canViewOuRegister();
 
 // Helper function to get the most specific OU name
 function getLastOuName($ouString) {
@@ -98,7 +99,7 @@ $this->registerCssFile('@web/css/site-index.css');
             </div>
             <?php endif; ?>
             
-            <?php if ($canViewLdapUsers): ?>
+            <?php if ($canViewOuRegister): ?>
             <div class="col-12 col-sm-6 col-md-4">
                 <div class="card card-warning card-outline">
                     <div class="card-header">
@@ -117,10 +118,29 @@ $this->registerCssFile('@web/css/site-index.css');
             </div>
             <?php endif; ?>
         </div>
+        <?php elseif ($canViewOuRegister): ?>
+        <div class="row">
+            <div class="col-12 col-sm-6 col-md-4">
+                <div class="card card-warning card-outline">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-user-clock"></i> ผู้ลงทะเบียนรออนุมัติ
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">ดูรายการผู้ใช้ที่ลงทะเบียนรออนุมัติ</p>
+                        <a href="<?= Yii::$app->urlManager->createUrl(['ldapuser/ou-register']) ?>"
+                            class="btn btn-warning">
+                            <i class="fas fa-user-clock"></i> ดูรายการรออนุมัติ
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
         <?php endif; ?>
         
         <!-- Regular User Menu (for users with view permissions) -->
-        <?php if (!$isAdmin && ($canViewAdUsers || $canViewLdapUsers)): ?>
+        <?php if (!$isAdmin && !$canViewOuRegister && ($canViewAdUsers || $canViewLdapUsers)): ?>
 
         <?php endif; ?>
         

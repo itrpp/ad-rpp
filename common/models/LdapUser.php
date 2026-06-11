@@ -69,6 +69,7 @@ class LdapUser extends Model
         return [
             'default' => ['cn', 'sn', 'mail', 'sAMAccountName', 'displayName', 'department', 'title', 'password', 'organizationalUnit', 'passwordNeverExpires', 'accountEnabled', 'userPassword', 'newPassword', 'confirmPassword', 'telephoneNumber', 'mobile', 'givenName', 'initials', 'streetAddress', 'city', 'state', 'postalCode', 'country', 'company', 'description', 'userPrincipalName', 'accountExpires', 'pwdLastSet', 'lastLogon', 'lastLogoff', 'logonCount', 'primaryGroupId', 'samAccountType', 'usnCreated', 'usnChanged', 'whenChanged', 'objectClass', 'objectGuid', 'objectSid', 'instanceType', 'codePage', 'msdsSupportedEncryptionTypes', 'name', 'co', 'physicalDeliveryOfficeName', 'wwwHomepage', 'jobTitle'],
             'update' => ['cn', 'sAMAccountName', 'displayName', 'department', 'title', 'mail', 'newPassword', 'confirmPassword', 'telephoneNumber', 'mobile', 'givenName', 'initials', 'streetAddress', 'city', 'state', 'postalCode', 'country', 'company', 'description', 'userPrincipalName', 'accountExpires', 'pwdLastSet', 'lastLogon', 'lastLogoff', 'logonCount', 'primaryGroupId', 'samAccountType', 'usnCreated', 'usnChanged', 'whenChanged', 'objectClass', 'objectGuid', 'objectSid', 'instanceType', 'codePage', 'msdsSupportedEncryptionTypes', 'name', 'co', 'physicalDeliveryOfficeName', 'wwwHomepage', 'jobTitle', 'personalTitle'],
+            'gtwUpdate' => ['country'],
             'create' => ['cn', 'sn', 'mail', 'sAMAccountName', 'displayName', 'department', 'title', 'password', 'organizationalUnit', 'passwordNeverExpires', 'accountEnabled', 'telephoneNumber', 'mobile', 'givenName', 'initials', 'streetAddress', 'city', 'state', 'postalCode', 'country', 'company', 'description', 'userPrincipalName', 'accountExpires', 'pwdLastSet', 'lastLogon', 'lastLogoff', 'logonCount', 'primaryGroupId', 'samAccountType', 'usnCreated', 'usnChanged', 'whenChanged', 'objectClass', 'objectGuid', 'objectSid', 'instanceType', 'codePage', 'msdsSupportedEncryptionTypes', 'name', 'co', 'physicalDeliveryOfficeName', 'wwwHomepage', 'jobTitle', 'personalTitle'],
         ];
     }
@@ -89,6 +90,12 @@ class LdapUser extends Model
             ['newPassword', 'string', 'min' => 6, 'skipOnEmpty' => true],
             ['confirmPassword', 'compare', 'compareAttribute' => 'newPassword', 'skipOnEmpty' => true],
             ['sAMAccountName', 'match', 'pattern' => '/^[a-zA-Z0-9_]+$/', 'message' => 'Username ต้องประกอบด้วยตัวอักษร ตัวเลข และ underscore เท่านั้น'],
+            ['country', 'trim'],
+            // ManageUser (gtwUpdate): บังคับกรอกตัวเลข 4 หลัก
+            ['country', 'required', 'on' => 'gtwUpdate', 'message' => 'กรุณากรอกเลขรหัสผู้ใช้งาน GTW'],
+            ['country', 'match', 'pattern' => '/^\d{4}$/', 'on' => 'gtwUpdate', 'message' => 'เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลข 4 หลัก'],
+            // Admin/กลุ่มอื่น: ไม่บังคับ แต่ถ้ากรอกต้องเป็นตัวเลข 4 หลัก
+            ['country', 'match', 'pattern' => '/^\d{4}$/', 'on' => 'update', 'skipOnEmpty' => true, 'message' => 'เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลข 4 หลัก'],
         ];
     }
 
@@ -110,7 +117,37 @@ class LdapUser extends Model
             'confirmPassword' => 'Confirm Password',
             'telephoneNumber' => 'Telephone Number',
             'personalTitle' => 'คำนำหน้าชื่อ',
+            'country' => 'เลขรหัสผู้ใช้งาน GTW',
         ];
+    }
+
+    /**
+     * จัดรูปแบบ GTW เป็นตัวเลข 4 หลัก (เช่น 1 → 0001, 955 → 0955)
+     */
+    public static function formatGtwCode($value)
+    {
+        $value = trim((string)$value);
+        if ($value === '') {
+            return '';
+        }
+        if (!preg_match('/^\d+$/', $value)) {
+            return $value;
+        }
+        if (strlen($value) > 4) {
+            $value = substr($value, -4);
+        }
+        return str_pad($value, 4, '0', STR_PAD_LEFT);
+    }
+
+    public function beforeValidate()
+    {
+        if (!parent::beforeValidate()) {
+            return false;
+        }
+        if ($this->country !== null && $this->country !== '') {
+            $this->country = self::formatGtwCode($this->country);
+        }
+        return true;
     }
 
     public function loadFromLdap()
@@ -138,7 +175,7 @@ class LdapUser extends Model
             $this->city = $user['l'][0] ?? '';
             $this->state = $user['st'][0] ?? '';
             $this->postalCode = $user['postalcode'][0] ?? '';
-            $this->country = $user['countrycode'][0] ?? '';
+            $this->country = self::formatGtwCode($user['countrycode'][0] ?? '');
             $this->company = $user['company'][0] ?? '';
             $this->description = $user['description'][0] ?? '';
             $this->userPrincipalName = $user['userprincipalname'][0] ?? '';
