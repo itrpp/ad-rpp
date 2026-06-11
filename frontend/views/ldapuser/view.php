@@ -125,9 +125,9 @@ $this->params['breadcrumbs'][] = $this->title;
                             ['label' => 'รายละเอียด(ยืม Street Address มาออก)', 'value' => $user['streetaddress'][0] ?? ''],
                             ['label' => 'เมือง (City)', 'value' => $user['l'][0] ?? ''],
                             ['label' => 'จังหวัด (State)', 'value' => $user['st'][0] ?? ''],
-                            ['label' => 'รหัสไปรษณีย์ (Postal Code)', 'value' => $user['postalcode'][0] ?? ''],
+                            ['label' => 'รหัสไปรษณีย์ (Postal Code) (ยืมมาใช้กรอกเลขบัตรประชาชน)', 'value' => $user['postalcode'][0] ?? ''],
                             ['label' => 'ตู้ไปรษณีย์ (Post Office Box)', 'value' => $user['postofficebox'][0] ?? ''],
-                            ['label' => 'ประเทศ (Country Code) (ยืมบันทึกเลขรหัสผู้ใช้งาน GTW)', 'value' => LdapUser::formatGtwCode($user['countrycode'][0] ?? '')],
+                            ['label' => 'ประเทศ (Country Code) (ยืมบันทึกเลขรหัสผู้ใช้งาน GTW)', 'value' => LdapUser::normalizeGtwCode($user['countrycode'][0] ?? '') ?: 'ยังไม่ระบุ'],
                             ['label' => 'สำนักงาน (ยืมมาใช้บันทึกเลขรหัสจากระบบ E-phis)', 'value' => $user['physicaldeliveryofficename'][0] ?? ''],
                         ]
                     ]) ?>

@@ -4,8 +4,8 @@ use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 use yii\web\View;
 
-/* @var $this yii\web\View */
-/* @var $model common\models\AdUser */
+/** @var yii\web\View $this */
+/** @var common\models\AdUser $model */
 
 $this->title = 'ลงทะเบียน';
 // $this->params['breadcrumbs'][] = ['label' => 'AD User Management', 'url' => ['index']];
@@ -144,7 +144,15 @@ if (class_exists('yii\debug\Module')) {
                     // Create dropdown options from AD OUs
                     $ouOptions = [];
                     $excludedOus = ['Register-test', 'updateOU', 'test', 'ฝ่ายการพยาบาล', 'ฝ่ายการพยาบาล(Nurse)' ,'rpp-register'];
-                    
+                    $stripItDesSuffix = static function (string $value): string {
+                        $value = trim($value);
+                        if ($value !== '' && strlen($value) > 3
+                            && substr(strtolower($value), -3) === 'des') {
+                            return substr($value, 0, -3);
+                        }
+                        return $value;
+                    };
+
                     foreach ($allOus as $ou) {
                         if (isset($ou['ou']) && isset($ou['dn'])) {
                             // Skip excluded OU names
@@ -153,27 +161,32 @@ if (class_exists('yii\debug\Module')) {
                             }
                             
                             // Use OU name as value (not full DN) for department attribute
-                            // Extract clean OU name (remove suffix after dash if exists, e.g., "IT-itdes" -> "IT")
+                            // แสดง "IT - it" แทน "IT - itdes" (itdes มาจากชื่อ OU หรือ description ใน AD)
                             $ouName = $ou['ou'];
-                            
-                            // Always extract clean name first (remove suffix after dash)
+
                             if (strpos($ouName, '-') !== false) {
-                                $parts = explode('-', $ouName);
-                                $displayName = trim($parts[0]); // This will be "IT" for "IT-itdes"
+                                $parts = explode('-', $ouName, 2);
+                                $firstPart = trim($parts[0]);
+                                $secondPart = $stripItDesSuffix(trim($parts[1] ?? ''));
+                                $displayName = $secondPart !== ''
+                                    ? ($firstPart . ' - ' . $secondPart)
+                                    : $firstPart;
                             } else {
                                 $displayName = $ouName;
-                            }
-                            
-                            // Add description if available (but don't add if it's just a duplicate of the clean name)
-                            if (isset($ou['description']) && !empty($ou['description'])) {
-                                $cleanDescription = trim($ou['description']);
-                                // Only add description if it's different from the clean display name
-                                if ($cleanDescription !== $displayName && !empty($cleanDescription)) {
-                                    $displayName .= ' - ' . $cleanDescription;
+
+                                if (isset($ou['description']) && !empty($ou['description'])) {
+                                    $cleanDescription = $stripItDesSuffix(trim($ou['description']));
+                                    if ($cleanDescription !== $displayName && $cleanDescription !== '') {
+                                        $displayName .= ' - ' . $cleanDescription;
+                                    }
                                 }
                             }
+
+                            // กรณี OU=IT และ description=itdes (หรือชื่อ OU มี itdes)
+                            if (strcasecmp($displayName, 'IT - itdes') === 0) {
+                                $displayName = 'IT - it';
+                            }
                             
-                            // Key is the full OU name from AD (e.g., "IT-itdes"), value is display name (e.g., "IT")
                             $ouOptions[$ou['ou']] = $displayName;
                         }
                     }
@@ -232,6 +245,7 @@ if (class_exists('yii\debug\Module')) {
                         'id' => 'thai-id-card',
                         'required' => true
                     ])->label('เลขบัตรประชาชน <span class="text-danger">*</span>') ?>
+                    <div class="mt-1" id="id-card-availability" aria-live="polite"></div>
                 </div>
                 <div class="col-md-6">
                     <?= $form->field($model, 'company', [
@@ -254,7 +268,7 @@ if (class_exists('yii\debug\Module')) {
                         'placeholder' => 'รายละเอียดเพิ่มเติม หรือวัตถุประสงค์ในการขอใช้งานระบบ',
                         'aria-describedby' => 'streetaddressHelp'
                     ]) ?>
-                    <small class="text-info" id="streetaddressHelp" class="form-text text-muted">User และ รหัสผ่านที่ลงทะเบียนในระบบนี้จะใช้งานได้กับ KM,PACSRPPH5,Internet ในโรงพยาบาล,VPN</small>
+                    <small class="text-info" id="streetaddressHelp" class="form-text text-muted">User และ รหัสผ่านที่ลงทะเบียนในระบบนี้จะใช้งานได้กับ KM,PACSRPPH5,Budgetplan,Procurement,Internet ในโรงพยาบาล,VPN</small>
                     <div class="mt-1" style="color:#d26a00; font-weight:600;">ส่วนระบบ E-phis จะใช้ user นี้ รหัสผ่านจะเป็นตามที่ admin แจ้ง</div>
 
             </div>
@@ -516,10 +530,52 @@ if (class_exists('yii\debug\Module')) {
                 }, 400);
             });
 
+            // Thai ID card duplicate check (debounced)
+            var idCardTimer = null;
+            var idCardExists = false;
+            var idCardUrl = '" . Yii::$app->urlManager->createUrl(['ad-user/check-id-card']) . "';
+
+            function checkIdCardDuplicate(idCard) {
+                if (!idCard || idCard.length !== 13 || !validateThaiIdCard(idCard)) {
+                    idCardExists = false;
+                    $('#id-card-availability').html('');
+                    return;
+                }
+                clearTimeout(idCardTimer);
+                idCardTimer = setTimeout(function() {
+                    $.get(idCardUrl, {idCard: idCard}).done(function(res) {
+                        if (res && res.success) {
+                            if (res.exists) {
+                                idCardExists = true;
+                                $('#id-card-availability').html('<span class=\"text-danger\">❌ เลขบัตรประชาชนนี้มีในระบบแล้ว</span>');
+                                $('#thai-id-card').removeClass('is-valid').addClass('is-invalid');
+                                var errorDiv = $('#thai-id-card').next('.invalid-feedback');
+                                if (errorDiv.length) {
+                                    errorDiv.text('เลขบัตรประชาชนนี้มีในระบบแล้ว กรุณาติดต่อผู้ดูแลระบบ');
+                                }
+                            } else {
+                                idCardExists = false;
+                                $('#id-card-availability').html('<span class=\"text-success\">✅ เลขบัตรประชาชนนี้ยังไม่มีในระบบ</span>');
+                            }
+                        }
+                    });
+                }, 400);
+            }
+
             // Before submit: validate confirm password and name duplication
             $('#create-form').on('beforeSubmit', function(e) {
                 e.preventDefault();
                 if(!validateConfirm()){
+                    return false;
+                }
+                if(idCardExists){
+                    var idCardInput = $('#thai-id-card');
+                    var idCardMsg = 'เลขบัตรประชาชนนี้มีในระบบแล้ว กรุณาติดต่อผู้ดูแลระบบ';
+                    idCardInput.addClass('is-invalid');
+                    if(idCardInput.next('.invalid-feedback').length === 0){
+                        $('<div class=\"invalid-feedback\"></div>').insertAfter(idCardInput);
+                    }
+                    idCardInput.next('.invalid-feedback').text(idCardMsg);
                     return false;
                 }
                 if(nameExists){
@@ -549,6 +605,8 @@ if (class_exists('yii\debug\Module')) {
                             $('#passwordStrengthText').text('Password strength: -');
                             $('#username-availability').html('');
                             $('#name-availability').html('');
+                            $('#id-card-availability').html('');
+                            idCardExists = false;
                             var modalEl = document.getElementById('successModal');
                             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
                                 var successModal = new bootstrap.Modal(modalEl);
@@ -559,7 +617,10 @@ if (class_exists('yii\debug\Module')) {
                             }
                         } else if (response && typeof response === 'object' && response.errors) {
                             $.each(response.errors, function(field, errors) {
-                                var input = form.find('[name=\"' + field + '\"]');
+                                var input = form.find('[name=\"AdUser[' + field + ']\"]');
+                                if (!input.length) {
+                                    input = form.find('[name=\"' + field + '\"]');
+                                }
                                 input.addClass('is-invalid');
                                 var errorDiv = input.next('.invalid-feedback');
                                 if(errorDiv.length === 0) {
@@ -607,7 +668,9 @@ if (class_exists('yii\debug\Module')) {
                 
                 // Clear username availability
                 $('#username-availability').html('');
-                $('#name-availability').html(''); // Clear name availability
+                $('#name-availability').html('');
+                $('#id-card-availability').html('');
+                idCardExists = false;
                 
                 // Clear any custom validation states
                 form.find('input').removeClass('is-invalid is-valid');
@@ -647,12 +710,16 @@ if (class_exists('yii\debug\Module')) {
                 var errorDiv = $(this).next('.invalid-feedback');
                 
                 if (!idCard) {
+                    idCardExists = false;
+                    $('#id-card-availability').html('');
                     $(this).removeClass('is-invalid is-valid');
                     if (errorDiv.length) { errorDiv.text(''); }
                     return;
                 }
                 
                 if (idCard.length < 13) {
+                    idCardExists = false;
+                    $('#id-card-availability').html('');
                     $(this).removeClass('is-valid').addClass('is-invalid');
                     if (errorDiv.length) { errorDiv.text('กรุณากรอกเลขบัตรประชาชน 13 หลัก'); }
                     return;
@@ -660,15 +727,22 @@ if (class_exists('yii\debug\Module')) {
                 
                 var digitRegex = /^[0-9]{13}$/;
                 if (!digitRegex.test(idCard)) {
+                    idCardExists = false;
+                    $('#id-card-availability').html('');
                     $(this).removeClass('is-valid').addClass('is-invalid');
                     if (errorDiv.length) { errorDiv.text('เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก'); }
                     return;
                 }
                 
                 if (validateThaiIdCard(idCard)) {
-                    $(this).removeClass('is-invalid').addClass('is-valid');
-                    if (errorDiv.length) { errorDiv.text(''); }
+                    if (!idCardExists) {
+                        $(this).removeClass('is-invalid').addClass('is-valid');
+                        if (errorDiv.length) { errorDiv.text(''); }
+                    }
+                    checkIdCardDuplicate(idCard);
                 } else {
+                    idCardExists = false;
+                    $('#id-card-availability').html('');
                     $(this).removeClass('is-valid').addClass('is-invalid');
                     if (errorDiv.length) { errorDiv.text('เลขบัตรประชาชนไม่ถูกต้องตามรูปแบบไทย'); }
                 }

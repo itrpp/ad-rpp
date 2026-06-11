@@ -91,11 +91,9 @@ class LdapUser extends Model
             ['confirmPassword', 'compare', 'compareAttribute' => 'newPassword', 'skipOnEmpty' => true],
             ['sAMAccountName', 'match', 'pattern' => '/^[a-zA-Z0-9_]+$/', 'message' => 'Username ต้องประกอบด้วยตัวอักษร ตัวเลข และ underscore เท่านั้น'],
             ['country', 'trim'],
-            // ManageUser (gtwUpdate): บังคับกรอกตัวเลข 4 หลัก
-            ['country', 'required', 'on' => 'gtwUpdate', 'message' => 'กรุณากรอกเลขรหัสผู้ใช้งาน GTW'],
-            ['country', 'match', 'pattern' => '/^\d{4}$/', 'on' => 'gtwUpdate', 'message' => 'เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลข 4 หลัก'],
-            // Admin/กลุ่มอื่น: ไม่บังคับ แต่ถ้ากรอกต้องเป็นตัวเลข 4 หลัก
-            ['country', 'match', 'pattern' => '/^\d{4}$/', 'on' => 'update', 'skipOnEmpty' => true, 'message' => 'เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลข 4 หลัก'],
+            // ไม่บังคับกรอก — ถ้ากรอกต้องเป็นตัวเลข 1-6 หลัก
+            ['country', 'match', 'pattern' => '/^\d{1,6}$/', 'on' => ['update', 'gtwUpdate'], 'skipOnEmpty' => true, 'message' => 'เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลขไม่เกิน 6 หลัก'],
+            ['country', 'string', 'max' => 6, 'on' => ['update', 'gtwUpdate'], 'skipOnEmpty' => true],
         ];
     }
 
@@ -122,21 +120,27 @@ class LdapUser extends Model
     }
 
     /**
-     * จัดรูปแบบ GTW เป็นตัวเลข 4 หลัก (เช่น 1 → 0001, 955 → 0955)
+     * แสดง/เก็บค่า GTW ตามที่มี (ไม่เติม 0 เป็น 0000, ค่า 0 ถือว่าว่าง)
      */
-    public static function formatGtwCode($value)
+    public static function normalizeGtwCode($value)
     {
         $value = trim((string)$value);
-        if ($value === '') {
+        if ($value === '' || $value === '0') {
             return '';
         }
         if (!preg_match('/^\d+$/', $value)) {
             return $value;
         }
-        if (strlen($value) > 4) {
-            $value = substr($value, -4);
+        if (strlen($value) > 6) {
+            return substr($value, 0, 6);
         }
-        return str_pad($value, 4, '0', STR_PAD_LEFT);
+        return $value;
+    }
+
+    /** @deprecated ใช้ normalizeGtwCode() แทน */
+    public static function formatGtwCode($value)
+    {
+        return self::normalizeGtwCode($value);
     }
 
     public function beforeValidate()
@@ -144,8 +148,8 @@ class LdapUser extends Model
         if (!parent::beforeValidate()) {
             return false;
         }
-        if ($this->country !== null && $this->country !== '') {
-            $this->country = self::formatGtwCode($this->country);
+        if ($this->country !== null) {
+            $this->country = self::normalizeGtwCode($this->country);
         }
         return true;
     }
@@ -175,7 +179,7 @@ class LdapUser extends Model
             $this->city = $user['l'][0] ?? '';
             $this->state = $user['st'][0] ?? '';
             $this->postalCode = $user['postalcode'][0] ?? '';
-            $this->country = self::formatGtwCode($user['countrycode'][0] ?? '');
+            $this->country = self::normalizeGtwCode($user['countrycode'][0] ?? '');
             $this->company = $user['company'][0] ?? '';
             $this->description = $user['description'][0] ?? '';
             $this->userPrincipalName = $user['userprincipalname'][0] ?? '';

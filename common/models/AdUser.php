@@ -46,6 +46,7 @@ class AdUser extends Model
             [['ephis_code'], 'string', 'max' => 20],
             [['id_card'], 'match', 'pattern' => '/^[0-9]{13}$/', 'message' => 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก'],
             [['id_card'], 'validateThaiIdCard'],
+            [['id_card'], 'validateIdCardUnique'],
             [['samaccountname'], 'match', 'pattern' => '/^[A-Za-z0-9._]+$/', 'message' => 'ชื่อผู้ใช้อนุญาตเฉพาะ a-z, 0-9, ., _ และห้ามเว้นวรรค'],
             [['telephone'], 'match', 'pattern' => '/^\+?[0-9\-()\s]+$/', 'message' => 'รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง'],
             [["username", "sername"], 'match', 'pattern' => '/^[\p{L}\p{M}\s\'’-]+$/u', 'message' => "ชื่อและนามสกุลต้องเป็นตัวอักษรและช่องว่าง (อนุญาต - และ ')"],
@@ -128,7 +129,7 @@ class AdUser extends Model
             'name_en' => 'ชื่อ-นามสกุล (ภาษาอังกฤษ)',
             'title' => 'ตำแหน่ง',
             'id_card' => 'เลขบัตรประชาชน',
-            'company' => 'ชื่อบริษัทที่ติดต่อ(กรณีไม่ใช้จนท.รพ.)',
+            'company' => 'ชื่อบริษัทที่ติดต่อ และ ชื่อจนท.รพ.(ให้บคคลภายนอกขอใช้ระบบ)',
             'ephis_code' => 'เลขรหัสจาก Ephis',
             'streetaddress' => 'รายละเอียดเพิ่มเติม',
         ];
@@ -193,6 +194,26 @@ class AdUser extends Model
         
         if (intval($idCard[12]) !== $checkDigit) {
             $this->addError($attribute, 'เลขบัตรประชาชนไม่ถูกต้องตามรูปแบบไทย');
+        }
+    }
+
+    /**
+     * ตรวจสอบเลขบัตรประชาชนซ้ำใน LDAP (เก็บใน postalCode)
+     */
+    public function validateIdCardUnique($attribute, $params)
+    {
+        $value = trim((string)$this->$attribute);
+        if ($value === '' || $this->hasErrors($attribute)) {
+            return;
+        }
+
+        try {
+            $ldap = new \common\components\LdapHelper();
+            if ($ldap->isIdCardRegistered($value)) {
+                $this->addError($attribute, 'เลขบัตรประชาชนนี้มีในระบบแล้ว กรุณาติดต่อผู้ดูแลระบบ');
+            }
+        } catch (\Throwable $e) {
+            \Yii::error('validateIdCardUnique error: ' . $e->getMessage());
         }
     }
 

@@ -29,7 +29,7 @@ class AdUserController extends Controller
                         }
                     ],
                     [
-                        'actions' => ['create', 'check-username', 'check-name'],
+                        'actions' => ['create', 'check-username', 'check-name', 'check-id-card'],
                         'allow' => true,
                         'roles' => ['?', '@'],
                         'matchCallback' => function ($rule, $action) {
@@ -348,6 +348,31 @@ class AdUserController extends Controller
         } catch (\Throwable $e) {
             Yii::error('Name check error: ' . $e->getMessage());
             return ['success' => false, 'exists' => false, 'message' => 'Error checking name'];
+        }
+    }
+
+    public function actionCheckIdCard($idCard = null)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        $idCard = is_string($idCard) ? trim($idCard) : '';
+
+        if ($idCard === '') {
+            return ['success' => false, 'exists' => false, 'message' => 'idCard is required'];
+        }
+
+        if (!preg_match('/^[0-9]{13}$/', $idCard)) {
+            return ['success' => false, 'exists' => false, 'message' => 'Invalid id card format'];
+        }
+
+        try {
+            $ldap = new \common\components\LdapHelper();
+            return [
+                'success' => true,
+                'exists' => $ldap->isIdCardRegistered($idCard),
+            ];
+        } catch (\Throwable $e) {
+            Yii::error('ID card check error: ' . $e->getMessage());
+            return ['success' => false, 'exists' => false, 'message' => 'Error checking id card'];
         }
     }
 

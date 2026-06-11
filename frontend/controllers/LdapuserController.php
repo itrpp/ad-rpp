@@ -308,11 +308,11 @@ class LdapuserController extends Controller
             }
         }
 
-        $originalCountry = LdapUser::formatGtwCode($model->country);
+        $originalCountry = LdapUser::normalizeGtwCode($model->country);
 
         if ($canEditGtwOnly && Yii::$app->request->isPost && Yii::$app->request->post('gtw_save')) {
             $postCountry = Yii::$app->request->post('LdapUser', [])['country'] ?? '';
-            $gtwCode = LdapUser::formatGtwCode($postCountry);
+            $gtwCode = LdapUser::normalizeGtwCode($postCountry);
 
             $gtwModel = clone $model;
             $gtwModel->scenario = 'gtwUpdate';
@@ -339,7 +339,9 @@ class LdapuserController extends Controller
                 $currentUser = $this->getCurrentUserLdapData();
                 $currentUsername = $currentUser['samaccountname'] ?? 'Unknown';
                 Yii::info("User {$currentUsername} updated GTW code for {$model->cn}: {$gtwCode}", 'ldap');
-                Yii::$app->session->setFlash('success', 'บันทึกเลขรหัสผู้ใช้งาน GTW (' . $gtwCode . ') สำเร็จ');
+                Yii::$app->session->setFlash('success', $gtwCode !== ''
+                    ? 'บันทึกเลขรหัสผู้ใช้งาน GTW (' . $gtwCode . ') สำเร็จ'
+                    : 'บันทึกข้อมูล GTW สำเร็จ');
                 return $this->redirect(['update', 'cn' => $model->cn]);
             }
 

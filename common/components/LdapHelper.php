@@ -1699,4 +1699,67 @@ class LdapHelper
      */
     // Removed createOU per request
 
+    /**
+     * ค้นหา DN ฐานสำหรับค้นหาผู้ใช้ตามการตั้งค่า ldap params
+     * @return string[]
+     */
+    public function getUserSearchBaseDns(): array
+    {
+        $config = Yii::$app->params['ldap'] ?? [];
+
+        if (!empty($config['search_all_ous'])) {
+            return array_filter([$config['base_dn'] ?? '']);
+        }
+
+        $allowed = $config['allowed_ous'] ?? [];
+        if (!empty($allowed)) {
+            return $allowed;
+        }
+
+        return array_filter([
+            $config['base_dn_user'] ?? ($config['base_dn'] ?? null),
+            $config['base_dn_reg'] ?? null,
+        ]);
+    }
+
+    /**
+     * Escape ค่าสำหรับใช้ใน LDAP filter
+     */
+    public static function escapeLdapFilterValue(string $value): string
+    {
+        $search = ['\\', '*', '(', ')', "\0"];
+        $replace = ['\\5c', '\\2a', '\\28', '\\29', '\\00'];
+        return str_replace($search, $replace, $value);
+    }
+
+    /**
+     * ตรวจว่าเลขบัตรประชาชน (postalCode) ถูกลงทะเบียนในระบบแล้วหรือไม่
+     */
+    public function isIdCardRegistered(string $idCard): bool
+    {
+        $idCard = trim($idCard);
+        if ($idCard === '' || !preg_match('/^[0-9]{13}$/', $idCard)) {
+            return false;
+        }
+
+        $escaped = self::escapeLdapFilterValue($idCard);
+        $filter = '(postalCode=' . $escaped . ')';
+
+        foreach ($this->getUserSearchBaseDns() as $baseDn) {
+            if (empty($baseDn)) {
+                continue;
+            }
+            $search = @ldap_search($this->ldapConn, $baseDn, $filter, ['postalCode', 'sAMAccountName']);
+            if (!$search) {
+                continue;
+            }
+            $entries = ldap_get_entries($this->ldapConn, $search);
+            if ($entries && isset($entries['count']) && $entries['count'] > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }
