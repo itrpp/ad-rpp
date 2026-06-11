@@ -22,6 +22,7 @@ $roInput = ['readonly' => true, 'disabled' => true, 'class' => 'form-control bg-
 $roSelect = ['disabled' => true, 'class' => 'form-control bg-light'];
 $countryEditable = $isAdmin || $canEditGtwOnly;
 $backUrl = ($readOnly || $canEditGtwOnly) ? ['ou-register'] : ['ou-user'];
+$mainFormClosed = false;
 
 if ($model->country !== null && $model->country !== '') {
     $model->country = \common\models\LdapUser::formatGtwCode($model->country);
@@ -230,11 +231,10 @@ if (Yii::$app->session->hasFlash('success')) {
                         'id' => 'update-user-form',
                         'enableAjaxValidation' => false,
                         'enableClientValidation' => $isAdmin,
-                        'options' => [
-                            'data-pjax' => $isAdmin,
-                            'novalidate' => $canEditGtwOnly,
-                            'onsubmit' => $canEditGtwOnly ? 'return validateGtwForm();' : ($readOnly ? 'return false;' : 'return validateForm()'),
-                        ],
+                        'options' => array_filter([
+                            'data-pjax' => $isAdmin ? true : null,
+                            'onsubmit' => $canEditGtwOnly ? 'return false;' : ($readOnly ? 'return false;' : 'return validateForm()'),
+                        ]),
                         'fieldConfig' => [
                             'template' => "{label}\n{input}\n{error}",
                             'labelOptions' => ['class' => 'col-form-label'],
@@ -379,15 +379,23 @@ if (Yii::$app->session->hasFlash('success')) {
                                         ->label('เลขระบบ E-phis (ถ้ามี) ') ?>
                                 </div>
                                 <div class="col-md-6">
+                                    <?php if ($canEditGtwOnly): ?>
+                                    <div class="mb-3">
+                                        <label class="col-form-label">เลขรหัสผู้ใช้งาน GTW <span class="text-danger">*</span></label>
+                                        <div class="form-control bg-light text-muted">แก้ไขในช่องด้านล่าง</div>
+                                    </div>
+                                    <?php else: ?>
                                     <?= $form->field($model, 'country')
                                         ->textInput(array_merge([
                                             'maxlength' => 4,
-                                            'placeholder' => $canEditGtwOnly ? '0001' : '0001 (ไม่บังคับ)',
+                                            'placeholder' => '0001 (ไม่บังคับ)',
+                                            'pattern' => '[0-9]{4}',
                                             'inputmode' => 'numeric',
                                             'autocomplete' => 'off',
-                                            'title' => 'ตัวเลข 4 หลัก เช่น 0001' . ($canEditGtwOnly ? ' (บังคับกรอก)' : ' (ไม่บังคับ)'),
-                                        ], $canEditGtwOnly ? [] : ['pattern' => '[0-9]{4}'], $countryEditable ? ['class' => 'form-control gtw-code-input'] : $roInput))
-                                        ->label('เลขรหัสผู้ใช้งาน GTW' . ($canEditGtwOnly ? ' <span class="text-danger">*</span>' : '')) ?>
+                                            'title' => 'ตัวเลข 4 หลัก เช่น 0001 (ไม่บังคับ)',
+                                        ], $countryEditable ? ['class' => 'form-control gtw-code-input'] : $roInput))
+                                        ->label('เลขรหัสผู้ใช้งาน GTW') ?>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="w-100"></div>
                                 <div class="col-md-6">
@@ -475,9 +483,46 @@ if (Yii::$app->session->hasFlash('success')) {
                         <?= Html::a('<i class="fas fa-times me-2"></i>Cancel', $backUrl, ['class' => 'btn btn-default']) ?>
                     </div>
                     <?php elseif ($canEditGtwOnly): ?>
-                    <div class="form-group text-end mt-3">
-                        <?= Html::submitButton('<i class="fas fa-save me-2"></i>บันทึก GTW', ['class' => 'btn btn-primary']) ?>
-                        <?= Html::a('<i class="fas fa-arrow-left me-2"></i>กลับรายการรออนุมัติ', ['ou-register'], ['class' => 'btn btn-secondary']) ?>
+                    <?php ActiveForm::end(); $mainFormClosed = true; ?>
+
+                    <div class="card border-warning mt-3">
+                        <div class="card-header bg-warning bg-opacity-25 py-2">
+                            <strong><i class="fas fa-edit me-1"></i>แก้ไขเลขรหัสผู้ใช้งาน GTW</strong>
+                        </div>
+                        <div class="card-body">
+                            <?php $gtwForm = ActiveForm::begin([
+                                'id' => 'gtw-save-form',
+                                'action' => ['update', 'cn' => $model->cn],
+                                'method' => 'post',
+                                'enableAjaxValidation' => false,
+                                'enableClientValidation' => false,
+                                'options' => ['novalidate' => true],
+                            ]); ?>
+                            <?= Html::hiddenInput('gtw_save', '1') ?>
+                            <div class="row justify-content-end">
+                                <div class="col-md-6">
+                                    <?= $gtwForm->field($model, 'country')
+                                        ->textInput([
+                                            'id' => 'ldapuser-country',
+                                            'maxlength' => 4,
+                                            'placeholder' => '0001',
+                                            'inputmode' => 'numeric',
+                                            'autocomplete' => 'off',
+                                            'class' => 'form-control gtw-code-input',
+                                            'title' => 'ตัวเลข 4 หลัก เช่น 0001',
+                                        ])
+                                        ->label('เลขรหัสผู้ใช้งาน GTW <span class="text-danger">*</span>') ?>
+                                </div>
+                            </div>
+                            <div class="form-group text-end mt-2 mb-0">
+                                <?= Html::submitButton('<i class="fas fa-save me-2"></i>บันทึก GTW', [
+                                    'class' => 'btn btn-primary',
+                                    'id' => 'gtw-save-btn',
+                                ]) ?>
+                                <?= Html::a('<i class="fas fa-arrow-left me-2"></i>กลับรายการรออนุมัติ', ['ou-register'], ['class' => 'btn btn-secondary']) ?>
+                            </div>
+                            <?php ActiveForm::end(); ?>
+                        </div>
                     </div>
                     <?php else: ?>
                     <div class="text-end mt-3">
@@ -499,7 +544,9 @@ if (Yii::$app->session->hasFlash('success')) {
                         </div>
                     </div> -->
 
+                    <?php if (!$mainFormClosed): ?>
                     <?php ActiveForm::end(); ?>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -1009,26 +1056,48 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <?php if ($canEditGtwOnly): ?>
-// ManageUser: pad ก่อน submit 1 ครั้ง (แก้ปัญหาต้องกดบันทึก 2 รอบ)
+// ManageUser: ฟอร์ม GTW แยก — pad + submit ครั้งเดียว
 document.addEventListener('DOMContentLoaded', function() {
-    var form = document.getElementById('update-user-form');
+    var gtwForm = document.getElementById('gtw-save-form');
     var gtwField = document.getElementById('ldapuser-country');
-    var submitBtn = form ? form.querySelector('button[type="submit"]') : null;
-    if (gtwField && gtwField.value.trim() !== '') {
+    var saveBtn = document.getElementById('gtw-save-btn');
+    if (!gtwForm || !gtwField) {
+        return;
+    }
+    if (gtwField.value.trim() !== '') {
         gtwField.value = padGtwCode(gtwField.value);
     }
-    if (submitBtn) {
-        submitBtn.addEventListener('mousedown', function() {
-            if (gtwField) {
-                gtwField.value = padGtwCode(gtwField.value);
-            }
-        });
-    }
+    gtwField.addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '').slice(0, 4);
+    });
+    gtwField.addEventListener('blur', function() {
+        if (this.value.trim() !== '') {
+            this.value = padGtwCode(this.value);
+        }
+    });
+    gtwForm.addEventListener('submit', function(e) {
+        gtwField.value = padGtwCode(gtwField.value);
+        if (gtwField.value.trim() === '') {
+            e.preventDefault();
+            alert('กรุณากรอกเลขรหัสผู้ใช้งาน GTW');
+            gtwField.focus();
+            return;
+        }
+        if (!/^\d{4}$/.test(gtwField.value.trim())) {
+            e.preventDefault();
+            alert('เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลข 4 หลัก');
+            gtwField.focus();
+            gtwField.select();
+            return;
+        }
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>กำลังบันทึก...';
+        }
+    });
 });
-<?php endif; ?>
-
-<?php if ($countryEditable): ?>
-// GTW: รับเฉพาะตัวเลข สูงสุด 4 หลัก (รองรับ 0001)
+<?php elseif ($isAdmin && $countryEditable): ?>
+// GTW: รับเฉพาะตัวเลข สูงสุด 4 หลัก (Admin)
 document.addEventListener('DOMContentLoaded', function() {
     const gtwField = document.getElementById('ldapuser-country');
     if (!gtwField || gtwField.disabled || gtwField.readOnly) {

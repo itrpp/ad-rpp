@@ -310,43 +310,51 @@ class LdapuserController extends Controller
 
         $originalCountry = LdapUser::formatGtwCode($model->country);
 
-        if ($model->load(Yii::$app->request->post())) {
-            if ($canEditGtwOnly) {
-                $model->scenario = 'gtwUpdate';
-                $gtwCode = LdapUser::formatGtwCode($model->country ?? '');
+        if ($canEditGtwOnly && Yii::$app->request->isPost && Yii::$app->request->post('gtw_save')) {
+            $postCountry = Yii::$app->request->post('LdapUser', [])['country'] ?? '';
+            $gtwCode = LdapUser::formatGtwCode($postCountry);
+
+            $gtwModel = clone $model;
+            $gtwModel->scenario = 'gtwUpdate';
+            $gtwModel->country = $gtwCode;
+
+            if (!$gtwModel->validate(['country'])) {
+                Yii::$app->session->setFlash('error', implode(', ', $gtwModel->getFirstErrors()));
                 $model->country = $gtwCode;
-                $originalTrimmed = $originalCountry;
-
-                if (!$model->validate()) {
-                    Yii::$app->session->setFlash('error', implode(', ', $model->getFirstErrors()));
-                    return $this->render('update', [
-                        'model' => $model,
-                        'readOnly' => false,
-                        'canEditGtwOnly' => true,
-                    ]);
-                }
-
-                if ($gtwCode === $originalTrimmed) {
-                    Yii::$app->session->setFlash('info', 'ไม่มีการเปลี่ยนแปลง');
-                    return $this->redirect(['update', 'cn' => $model->cn]);
-                }
-
-                $ldap = new LdapHelper();
-                $principal = !empty($model->sAMAccountName) ? $model->sAMAccountName : $model->cn;
-                if ($ldap->updateUser($principal, ['countryCode' => $gtwCode])) {
-                    $currentUser = $this->getCurrentUserLdapData();
-                    $currentUsername = $currentUser['samaccountname'] ?? 'Unknown';
-                    Yii::info("User {$currentUsername} updated GTW code for {$model->cn}: {$gtwCode}", 'ldap');
-                    Yii::$app->session->setFlash('success', 'บันทึกเลขรหัสผู้ใช้งาน GTW (' . $gtwCode . ') สำเร็จ');
-                    return $this->redirect(['update', 'cn' => $model->cn]);
-                }
-
-                Yii::$app->session->setFlash('error', 'ไม่สามารถบันทึกเลขรหัสผู้ใช้งาน GTW ได้');
                 return $this->render('update', [
                     'model' => $model,
                     'readOnly' => false,
                     'canEditGtwOnly' => true,
                 ]);
+            }
+
+            if ($gtwCode === $originalCountry) {
+                Yii::$app->session->setFlash('info', 'ไม่มีการเปลี่ยนแปลง');
+                return $this->redirect(['update', 'cn' => $model->cn]);
+            }
+
+            $ldap = new LdapHelper();
+            $principal = !empty($model->sAMAccountName) ? $model->sAMAccountName : $model->cn;
+            if ($ldap->updateUser($principal, ['countryCode' => $gtwCode])) {
+                $currentUser = $this->getCurrentUserLdapData();
+                $currentUsername = $currentUser['samaccountname'] ?? 'Unknown';
+                Yii::info("User {$currentUsername} updated GTW code for {$model->cn}: {$gtwCode}", 'ldap');
+                Yii::$app->session->setFlash('success', 'บันทึกเลขรหัสผู้ใช้งาน GTW (' . $gtwCode . ') สำเร็จ');
+                return $this->redirect(['update', 'cn' => $model->cn]);
+            }
+
+            Yii::$app->session->setFlash('error', 'ไม่สามารถบันทึกเลขรหัสผู้ใช้งาน GTW ได้');
+            $model->country = $gtwCode;
+            return $this->render('update', [
+                'model' => $model,
+                'readOnly' => false,
+                'canEditGtwOnly' => true,
+            ]);
+        }
+
+        if ($model->load(Yii::$app->request->post())) {
+            if ($canEditGtwOnly) {
+                return $this->redirect(['update', 'cn' => $model->cn]);
             }
 
             if ($readOnly) {
