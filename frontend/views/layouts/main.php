@@ -90,6 +90,24 @@ if (!Yii::$app->user->isGuest) {
                 margin-bottom: 5px;
             }
         }
+
+        /* Content header */
+        .content-header {
+            padding: 0.85rem 0.5rem;
+        }
+        .content-header .page-content-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            line-height: 1.3;
+        }
+        .content-header .page-subtitle-meta {
+            line-height: 1.5;
+        }
+        .content-header .breadcrumb {
+            background: transparent;
+            padding: 0;
+            margin: 0;
+        }
         
         /* User dropdown - match sidebar theme (dark green) */
         .navbar-nav .dropdown-menu {
@@ -341,15 +359,38 @@ if (!Yii::$app->user->isGuest) {
         <!-- Content Header -->
         <div class="content-header">
             <div class="container-fluid">
-                <div class="row mb-2">
+                <div class="row mb-2 align-items-center">
                     <div class="col-sm-6">
-                        <h1 class="m-0"><?= Html::encode($this->title) ?></h1>
+                        <h1 class="m-0 page-content-title"><?= Html::encode($this->title) ?></h1>
+                        <?php if (!empty($this->params['pageSubtitle']) && is_array($this->params['pageSubtitle'])): ?>
+                            <?php
+                            $pageSubtitle = $this->params['pageSubtitle'];
+                            $subtitleEditor = isset($pageSubtitle['editor']) ? (string) $pageSubtitle['editor'] : '';
+                            $subtitleEditedAt = isset($pageSubtitle['editedAt']) ? (string) $pageSubtitle['editedAt'] : '';
+                            ?>
+                            <div class="page-subtitle-meta d-flex flex-wrap align-items-center gap-3 text-muted small mt-1">
+                                <?php if ($subtitleEditor !== ''): ?>
+                                    <span>
+                                        <i class="fas fa-user-edit me-1"></i>
+                                        ผู้แก้ไข:
+                                        <strong class="text-secondary fw-semibold"><?= Html::encode($subtitleEditor) ?></strong>
+                                    </span>
+                                <?php endif; ?>
+                                <?php if ($subtitleEditedAt !== ''): ?>
+                                    <span>
+                                        <i class="fas fa-clock me-1"></i>
+                                        วันที่-เวลาที่แก้ไข:
+                                        <strong class="text-secondary fw-semibold"><?= Html::encode($subtitleEditedAt) ?></strong>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                     <div class="col-sm-6">
-                        <div class="d-flex justify-content-end align-items-center gap-2">
+                        <div class="d-flex justify-content-sm-end align-items-center gap-2 mt-2 mt-sm-0">
                             <?= Breadcrumbs::widget([
                                 'links' => isset($this->params['breadcrumbs']) ? $this->params['breadcrumbs'] : [],
-                                'options' => ['class' => 'breadcrumb float-sm-right mb-0']
+                                'options' => ['class' => 'breadcrumb mb-0 justify-content-sm-end']
                             ]) ?>
                             <?php $appVersion = Yii::$app->params['appVersion'] ?? '1.0.0'; ?>
                             <span class="badge bg-secondary text-nowrap" title="เวอร์ชันระบบ">v<?= Html::encode($appVersion) ?></span>
@@ -363,7 +404,9 @@ if (!Yii::$app->user->isGuest) {
         <div class="content">
             <div class="container-fluid">
                 <?= Alert::widget([
-                    'excludeTypes' => (Yii::$app->controller->id === 'ldapuser' && Yii::$app->controller->action->id === 'update') ? ['success'] : [],
+                    'excludeTypes' => (Yii::$app->controller->id === 'ldapuser' && Yii::$app->controller->action->id === 'update')
+                        ? ['success', 'info', 'error']
+                        : [],
                 ]) ?>
                 <?= $content ?>
             </div>

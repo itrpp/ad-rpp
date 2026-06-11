@@ -16,13 +16,27 @@ $readOnly = ($isSuperUserOnly && !$canEditGtwOnly) || (!empty($readOnly) && !$ca
 $this->title = $canEditGtwOnly
     ? ('แก้ไข GTW: ' . $model->cn)
     : (($readOnly ? 'ดูข้อมูลผู้ใช้: ' : 'Update User: ') . $model->cn);
-$this->params['breadcrumbs'][] = ['label' => 'ผู้ลงทะเบียนรออนุมัติ', 'url' => ['ou-register']];
-$this->params['breadcrumbs'][] = $canEditGtwOnly ? 'แก้ไข GTW' : ($readOnly ? 'ดูข้อมูล' : 'Update');
+
+if ($canEditGtwOnly || $readOnly) {
+    $this->params['breadcrumbs'][] = ['label' => 'ผู้ลงทะเบียนรออนุมัติ', 'url' => ['ou-register']];
+} else {
+    $this->params['breadcrumbs'][] = ['label' => 'All User', 'url' => ['ou-user']];
+}
+$this->params['breadcrumbs'][] = $model->cn;
+
+$this->params['pageSubtitle'] = [
+    'editor' => Yii::$app->session->get('ldapUserData')['displayname']
+        ?? Yii::$app->session->get('ldapUserData')['samaccountname']
+        ?? 'Unknown',
+    'editedAt' => date('d/m/Y H:i:s'),
+];
 
 $roInput = ['readonly' => true, 'disabled' => true, 'class' => 'form-control bg-light'];
 $roSelect = ['disabled' => true, 'class' => 'form-control bg-light'];
 $countryEditable = $isAdmin || $canEditGtwOnly;
 $backUrl = ($readOnly || $canEditGtwOnly) ? ['ou-register'] : ['ou-user'];
+$canViewOuRegister = $pm->canViewOuRegister();
+$canViewAllUsers = $isAdmin || $pm->isSuperUser();
 $mainFormClosed = false;
 
 // Get available OUs
@@ -114,8 +128,8 @@ if (Yii::$app->session->hasFlash('success')) {
 ?>
 
 <div class="ldapuser-update">
-    <div class="row justify-content-center">
-        <div class="col-lg-11">
+    <div class="row">
+        <div class="col-12">
             <!-- Success Modal (ใช้แจ้งเตือนอย่างเดียว ไม่แสดงแบนเนอร์ซ้ำ) -->
             <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
                 <div class="modal-dialog">
@@ -189,48 +203,53 @@ if (Yii::$app->session->hasFlash('success')) {
 
 
             <div class="card">
-                <div class="card-header">
-                    <h1 class="text-center"><?= Html::encode($this->title) ?></h1>
-                    <div class="text-center text-muted">
-                        <small>
-                            <i class="fas fa-user-edit me-1"></i>
-                            ผู้แก้ไข: <?= Html::encode(Yii::$app->session->get('ldapUserData')['displayname'] ?? Yii::$app->session->get('ldapUserData')['samaccountname'] ?? 'Unknown') ?>
-                            <br>
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle me-1"></i>
-                               
-                            </small>
-                            วันที่-เวลาที่แก้ไข:
-                            <i class="fas fa-clock me-1"></i>
-                            <?= date('d/m/Y H:i:s') ?>
-                        </small>
+                <div class="card-header py-3">
+                    <?php if ($canViewOuRegister || $canViewAllUsers || (!$canEditGtwOnly && !$readOnly)): ?>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div class="d-flex flex-wrap gap-2">
+                            <?php if ($canViewOuRegister): ?>
+                                <?= Html::a('<i class="fas fa-user-clock me-1"></i>ผู้ลงทะเบียนรออนุมัติ', ['ou-register'], [
+                                    'class' => 'btn btn-outline-info btn-sm',
+                                    'title' => 'กลับไปหน้ารายการผู้ลงทะเบียนรออนุมัติ',
+                                ]) ?>
+                            <?php endif; ?>
+                            <?php if ($canViewAllUsers): ?>
+                                <?= Html::a('<i class="fas fa-sitemap me-1"></i>All User', ['ou-user'], [
+                                    'class' => 'btn btn-outline-primary btn-sm',
+                                    'title' => 'กลับไปหน้ารายการผู้ใช้ทั้งหมด',
+                                ]) ?>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (!$canEditGtwOnly && !$readOnly): ?>
+                        <div class="d-flex flex-wrap gap-2 ms-auto">
+                            <?= Html::a('<i class="fas fa-exchange-alt me-1"></i> Move OU', ['move', 'cn' => $model->cn], [
+                                'class' => 'btn btn-warning btn-sm',
+                                'title' => 'Move user to another OU',
+                            ]) ?>
+                            <?= Html::a('<i class="fas fa-list me-1"></i> ดูรายละเอียดทั้งหมด', ['view', 'cn' => $model->cn], [
+                                'class' => 'btn btn-outline-secondary btn-sm',
+                            ]) ?>
+                        </div>
+                        <?php endif; ?>
                     </div>
+                    <?php endif; ?>
+
                     <?php if ($canEditGtwOnly): ?>
-                    <div class="alert alert-warning py-2 mb-0 mt-2 text-center">
-                        <i class="fas fa-edit me-1"></i> แก้ไขได้เฉพาะ <strong>เลขรหัสผู้ใช้งาน GTW</strong> — ฟิลด์อื่นเป็นแบบอ่านอย่างเดียว
+                    <div class="update-mode-banner update-mode-banner--gtw mb-0 mt-2" role="status">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>แก้ไขได้เฉพาะ <strong>เลขรหัสผู้ใช้งาน GTW</strong> — ฟิลด์อื่นเป็นแบบอ่านอย่างเดียว</span>
                     </div>
                     <?php elseif ($readOnly): ?>
                     <div class="alert alert-info py-2 mb-0 mt-2 text-center">
                         <i class="fas fa-eye me-1"></i> โหมดดูข้อมูลอย่างเดียว — ไม่สามารถแก้ไขหรือบันทึกได้
                     </div>
-                    <?php else: ?>
-                    <div class="text-end mt-2">
-                        <?= Html::a('<i class="fas fa-exchange-alt me-1"></i> Move OU', ['move', 'cn' => $model->cn], [
-                            'class' => 'btn btn-warning btn-sm me-1',
-                            'title' => 'Move user to another OU',
-                        ]) ?>
-                        <?= Html::a('<i class="fas fa-list me-1"></i> ดูรายละเอียดทั้งหมด', ['view', 'cn' => $model->cn], ['class' => 'btn btn-outline-secondary btn-sm']) ?>
-                    </div>
                     <?php endif; ?>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 text-center mb-4">
-                            <div class="profile-image">
-                                <i class="fas fa-user-circle fa-6x text-primary"></i>
-                            </div>
-                            <div class="mt-3 p-3 bg-light border rounded-3 shadow-sm fs-5 user-current-info-box">
-                                <h6 class="user-current-info-title mb-2"><i class="fas fa-id-card me-2"></i>ข้อมูลปัจจุบัน</h6>
+                <div class="card-body py-4">
+                    <div class="row g-4 align-items-stretch update-user-panels-row">
+                        <div class="col-md-5 col-lg-5">
+                            <div class="h-100 p-3 p-lg-4 bg-light border rounded-3 shadow-sm user-current-info-box">
+                                <h6 class="user-panel-title user-current-info-title mb-3"><i class="fas fa-id-card me-2"></i>ข้อมูลปัจจุบัน</h6>
                                 <div class="text-start">
                                     <?php 
                                     // Helper to display clean OU name (e.g., "IT-itdes" -> "IT") for read-only sections
@@ -269,14 +288,14 @@ if (Yii::$app->session->hasFlash('success')) {
                                         $copyBtn = $raw !== ''
                                             ? '<button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline btn-copy-info" data-copy="' . Html::encode($raw) . '" title="คัดลอก" onclick="window.copyUserInfoRow(this); return false;"><i class="fas fa-copy"></i></button>'
                                             : '';
-                                        $class = trim('d-block user-info-row ' . $extraClass);
-                                        return '<small class="' . $class . '">'
-                                            . '<strong><i class="fas ' . $icon . ' me-1"></i>' . Html::encode($label) . ':</strong> '
+                                        $class = trim('user-info-row ' . $extraClass);
+                                        return '<div class="' . $class . '">'
+                                            . '<span class="user-info-label"><i class="fas ' . $icon . ' me-1"></i>' . Html::encode($label) . '</span>'
                                             . '<span class="user-info-value-wrap">'
                                             . '<span class="user-info-value">' . Html::encode($display) . '</span>'
                                             . $copyBtn
                                             . '</span>'
-                                            . '</small>';
+                                            . '</div>';
                                     };
                                     ?>
                                     <?= $renderUserInfoRow('fa-user', 'Username', $model->sAMAccountName ?? '') ?>
@@ -313,7 +332,7 @@ if (Yii::$app->session->hasFlash('success')) {
                                                 'placeholder' => 'กรอกรหัส',
                                                 'inputmode' => 'numeric',
                                                 'autocomplete' => 'off',
-                                                'title' => 'ตัวเลขไม่เกิน 6 หลัก (ไม่บังคับ)',
+                                                'title' => 'ตัวเลขไม่เกิน 6 หลัก',
                                             ])
                                             ->label('<i class="fas fa-key me-1"></i>เลขรหัสผู้ใช้งาน GTW') ?>
                                         <div class="d-flex gap-2 flex-wrap justify-content-start mt-2">
@@ -364,26 +383,39 @@ if (Yii::$app->session->hasFlash('success')) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-md-7 col-lg-7">
+                            <div class="h-100 p-3 p-lg-4 bg-white border rounded-3 shadow-sm update-user-edit-panel">
+                            <?php
+                            $editPanelTitle = $isAdmin
+                                ? 'แก้ไขข้อมูลผู้ใช้'
+                                : ($canEditGtwOnly ? 'ข้อมูลในระบบ' : 'ข้อมูลในระบบ (อ่านอย่างเดียว)');
+                            $editPanelIcon = $isAdmin ? 'fa-edit' : 'fa-file-alt';
+                            ?>
                             <?php $form = ActiveForm::begin([
                                 'id' => 'update-user-form',
                                 'enableAjaxValidation' => false,
                                 'enableClientValidation' => $isAdmin,
                                 'options' => array_filter([
+                                    'class' => 'update-user-form',
                                     'data-pjax' => $isAdmin ? true : null,
                                     'onsubmit' => $readOnly ? 'return false;' : ($isAdmin ? 'return validateForm()' : 'return false;'),
                                 ]),
                                 'fieldConfig' => [
                                     'template' => "{label}\n{input}\n{error}",
-                                    'labelOptions' => ['class' => 'col-form-label'],
+                                    'labelOptions' => ['class' => 'form-label update-form-label'],
                                     'inputOptions' => ['class' => 'form-control'],
                                     'errorOptions' => ['class' => 'invalid-feedback'],
                                 ],
                             ]); ?>
-                            <div class="mb-3">
-                                <?= $form->field($model, 'cn')->textInput(['readonly' => true, 'class' => 'form-control bg-light'])->label('CN') ?>
-                            </div>
-                            <div class="row g-3 fs-5">
+                            <h6 class="user-panel-title user-current-info-title mb-3">
+                                <i class="fas <?= $editPanelIcon ?> me-2"></i><?= Html::encode($editPanelTitle) ?>
+                            </h6>
+                            <div class="row g-3 update-user-form-grid">
+                                <div class="col-12">
+                                    <?= $form->field($model, 'cn', ['options' => ['class' => 'mb-3 field-ldapuser-cn']])
+                                        ->textInput(['readonly' => true, 'class' => 'form-control bg-light'])
+                                        ->label('CN') ?>
+                                </div>
                                 <div class="col-md-6">
                                     <?= $form->field($model, 'sAMAccountName')
                                         ->textInput(array_merge(['maxlength' => true, 'required' => $isAdmin, 'placeholder' => 'เช่น user123'], $isAdmin ? [] : $roInput))
@@ -417,10 +449,10 @@ if (Yii::$app->session->hasFlash('success')) {
                                     <?= $form->field($model, 'country')
                                         ->textInput(array_merge([
                                             'maxlength' => 6,
-                                            'placeholder' => 'กรอกรหัส (ไม่บังคับ)',
+                                            'placeholder' => 'กรอกรหัส',
                                             'inputmode' => 'numeric',
                                             'autocomplete' => 'off',
-                                            'title' => 'ตัวเลขไม่เกิน 6 หลัก (ไม่บังคับ)',
+                                            'title' => 'ตัวเลขไม่เกิน 6 หลัก',
                                         ], $countryEditable ? ['class' => 'form-control gtw-code-input'] : $roInput))
                                         ->label('เลขรหัสผู้ใช้งาน GTW') ?>
                                 </div>
@@ -436,10 +468,7 @@ if (Yii::$app->session->hasFlash('success')) {
                                         ->textInput(array_merge(['class' => 'form-control', 'placeholder' => 'ยังไม่ระบุ'], $isAdmin ? [] : $roInput))
                                         ->label('Telephone Number') ?>
                                 </div>
-                                
                             </div>
-                        </div>
-                    </div>
                     <?php if ($isAdmin): ?>
                     <hr>
 
@@ -517,6 +546,13 @@ if (Yii::$app->session->hasFlash('success')) {
                         <?= Html::a('<i class="fas fa-arrow-left me-2"></i>กลับรายการรออนุมัติ', ['ou-register'], ['class' => 'btn btn-secondary']) ?>
                     </div>
                     <?php endif; ?>
+
+                    <?php if (!$mainFormClosed): ?>
+                    <?php ActiveForm::end(); ?>
+                    <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Change Summary -->
                     <!-- <div class="mt-4">
@@ -532,9 +568,6 @@ if (Yii::$app->session->hasFlash('success')) {
                         </div>
                     </div> -->
 
-                    <?php if (!$mainFormClosed): ?>
-                    <?php ActiveForm::end(); ?>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -542,29 +575,127 @@ if (Yii::$app->session->hasFlash('success')) {
 </div>
 
 <style>
+.update-mode-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1.25rem;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+    color: #5c6670;
+    background: linear-gradient(135deg, #f8f9fa 0%, #eef1f4 100%);
+    border: 1px solid #dde2e6;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+.update-mode-banner i {
+    color: #868e96;
+    font-size: 0.95rem;
+}
+.update-mode-banner strong {
+    color: #343a40;
+    font-weight: 600;
+}
+.update-mode-banner--gtw {
+    border-left: 4px solid #868e96;
+}
+.update-user-panels-row {
+    margin-left: 0;
+    margin-right: 0;
+}
+.user-panel-title {
+    padding-bottom: 0.65rem;
+    border-bottom: 2px solid #e9ecef;
+}
+.user-current-info-box,
+.update-user-edit-panel {
+    font-weight: 500;
+    width: 100%;
+    max-width: 100%;
+}
+.user-current-info-box .text-start,
+.update-user-form {
+    width: 100%;
+}
+.user-info-row {
+    display: grid;
+    grid-template-columns: minmax(9.5rem, 36%) 1fr;
+    gap: 0.35rem 0.85rem;
+    align-items: start;
+    padding: 0.55rem 0;
+    margin: 0;
+    border-bottom: 1px dashed #dee2e6;
+    font-size: 0.95rem;
+    line-height: 1.45;
+}
+.user-info-row:last-child {
+    border-bottom: none;
+}
+.user-info-row.border-top {
+    border-top: 2px solid #e9ecef;
+    margin-top: 0.35rem;
+    padding-top: 0.85rem;
+}
+.user-info-label {
+    color: #5c3d1e;
+    font-weight: 700;
+}
+.user-info-label i {
+    width: 1.1rem;
+    text-align: center;
+}
+.user-info-value-wrap {
+    min-width: 0;
+    word-break: break-word;
+}
+.user-current-info-box .user-info-value,
+.update-user-edit-panel .form-control,
+.update-user-edit-panel .form-select {
+    font-weight: 600;
+    color: #0d47a1;
+}
 .user-current-info-box .user-current-info-title,
-.user-current-info-box strong {
+.user-current-info-box .user-info-label {
     color: #5c3d1e;
-    font-weight: 600;
+    font-weight: 700;
 }
-.user-current-info-box small.d-block {
-    color: #1976d2;
-    font-weight: 300;
-}
-.user-current-info-box small.d-block strong {
+.update-user-edit-panel .update-form-label {
+    font-size: 0.875rem;
+    font-weight: 700;
     color: #5c3d1e;
-    font-weight: 600;
+    margin-bottom: 0.35rem;
 }
-.user-current-info-box small.d-block strong i {
-    color: #5c3d1e;
+.update-user-edit-panel .form-control,
+.update-user-edit-panel .form-select {
+    min-height: 38px;
+    font-size: 0.95rem;
+    border-radius: 0.375rem;
+}
+.update-user-edit-panel .mb-3 {
+    margin-bottom: 0.9rem !important;
+}
+.update-user-form-grid > [class*="col-"] > .mb-3:last-child {
+    margin-bottom: 0 !important;
+}
+.update-user-edit-panel hr {
+    margin: 1.25rem 0;
+    opacity: 0.15;
+}
+@media (max-width: 575.98px) {
+    .user-info-row {
+        grid-template-columns: 1fr;
+        gap: 0.2rem;
+    }
 }
 .user-info-gtw-edit .user-current-info-title {
     color: #5c3d1e;
     font-weight: 600;
 }
 .user-info-gtw-edit .form-control {
-    color: #1976d2;
-    font-weight: 300;
+    color: #0d47a1;
+    font-weight: 600;
 }
 .user-info-gtw-edit .invalid-feedback {
     text-align: left;
@@ -589,7 +720,9 @@ if (Yii::$app->session->hasFlash('success')) {
     color: #198754 !important;
 }
 .ldapuser-update {
-    padding: 20px;
+    padding: 0;
+    width: 100%;
+    max-width: 100%;
 }
 .card {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -599,16 +732,8 @@ if (Yii::$app->session->hasFlash('success')) {
     background-color: #f8f9fa;
     border-bottom: 1px solid #dee2e6;
 }
-.card-header h1 {
-    font-size: 24px;
-    margin: 0;
-    padding: 10px 0;
-}
 .card-body {
     padding: 20px;
-}
-.profile-image {
-    margin-bottom: 20px;
 }
 .form-group {
     margin-bottom: 1rem;
