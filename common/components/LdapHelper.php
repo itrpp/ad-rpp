@@ -953,7 +953,7 @@ class LdapHelper
                 'cn', 'samaccountname', 'displayname', 'givenname', 'sn', 'department',
                 'mail', 'useraccountcontrol', 'ou', 'distinguishedname',
                 'whencreated', 'whenchanged', 'company', 'telephonenumber', 'title', 'personalTitle',
-                'streetaddress', 'physicaldeliveryofficename', 'postalcode', 'description'
+                'streetaddress', 'physicaldeliveryofficename', 'postalcode', 'description', 'countrycode'
             ];
             
             Yii::debug("Listing users (one-level) with filter: $filter in OU: $ouDn");
@@ -991,7 +991,8 @@ class LdapHelper
                         'streetaddress' => $entry['streetaddress'][0] ?? '',
                         'physicaldeliveryofficename' => $entry['physicaldeliveryofficename'][0] ?? '',
                         'postalcode' => $entry['postalcode'][0] ?? '',
-                        'description' => $entry['description'][0] ?? ''
+                        'description' => $entry['description'][0] ?? '',
+                        'countrycode' => $entry['countrycode'][0] ?? '',
                     ];
                 }
             }

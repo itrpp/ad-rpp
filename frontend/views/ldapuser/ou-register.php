@@ -50,6 +50,7 @@ if (!function_exists('formatThaiAdDate')) {
 }
 ?>
 
+<?php $this->registerCssFile('@web/css/ou-user.css'); ?>
 <style>
 /* Cursor styles for interactive elements */
 .user-row {
@@ -199,7 +200,7 @@ a {
                                     <th>บริษัท/(บุคลากรผู้ติดต่อ)</th>
                                     <th>วันที่ลงทะเบียน</th>
                                     <th>Status</th>
-                                    <th style="width: 150px">Actions</th>
+                                    <th style="width: 170px">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -255,7 +256,8 @@ a {
                                             <span class="badge badge-success">Enabled</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td>
+                                    <td class="text-center align-middle">
+                                        <?= $this->render('_user_integration_badges', ['user' => $user]) ?>
                                         <?php if ($isSuperUserOnly): ?>
                                         <div class="btn-group">
                                             <?= Html::a('<i class="fas fa-edit"></i>', ['update', 'cn' => $cn], [

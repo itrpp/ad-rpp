@@ -1,4 +1,20 @@
 /* OU User Page Styles */
+.user-integration-badges .badge {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 0.35em 0.55em;
+    border-radius: 0.25rem;
+}
+.user-integration-badges .user-badge-gtw {
+    background-color: #6c757d;
+    color: #fff;
+}
+.user-integration-badges .user-badge-ephis {
+    background-color: #4c6ef5;
+    color: #fff;
+}
+
 .content-wrapper {
     padding: 20px;
 }

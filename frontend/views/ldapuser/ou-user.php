@@ -256,7 +256,7 @@ $getUserAttr = function (array $user, $key) {
                                     <th class="sortable" data-sort-key="title" aria-sort="none">ตำแหน่ง <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
                                     <th style="width: 160px" class="sortable" data-sort-key="whenchanged" aria-sort="none">วันที่แก้ไขล่าสุด <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
                                     <th style="width: 100px" class="text-center">สถานะ</th>
-                                    <th style="width: 150px">Actions</th>
+                                    <th style="width: 170px">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -363,7 +363,8 @@ $getUserAttr = function (array $user, $key) {
                                                     </span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td>
+                                            <td class="text-center align-middle">
+                                                <?= $this->render('_user_integration_badges', ['user' => $user]) ?>
                                                 <div class="btn-group">
                                                     <button type="button" class="btn btn-sm btn-info view-user" 
                                                         data-bs-toggle="modal" 
