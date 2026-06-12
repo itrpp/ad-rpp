@@ -8,6 +8,7 @@ use yii\web\Response;
 use common\models\LdapUser;
 use yii\web\NotFoundHttpException;
 use common\components\LdapHelper;
+use common\components\LdapUserEditTracker;
 use common\components\PermissionManager;
 use yii\data\ArrayDataProvider;
 use yii\data\Pagination;
@@ -74,6 +75,32 @@ class LdapuserController extends Controller
     protected function getCurrentUserLdapData()
     {
         return Yii::$app->session->get('ldapUserData');
+    }
+
+    protected function getCurrentEditorDisplayName(): string
+    {
+        $currentUser = $this->getCurrentUserLdapData();
+        if (!is_array($currentUser)) {
+            return 'Unknown';
+        }
+
+        $displayName = trim((string)($currentUser['displayname'] ?? ''));
+        if ($displayName !== '') {
+            return $displayName;
+        }
+
+        $username = trim((string)($currentUser['samaccountname'] ?? ''));
+        return $username !== '' ? $username : 'Unknown';
+    }
+
+    protected function recordLdapUserEdit(string $cn, ?string $whenChanged = null): void
+    {
+        $editedAt = LdapUserEditTracker::formatWhenChanged($whenChanged);
+        if ($editedAt === '') {
+            $editedAt = date('d/m/Y H:i:s');
+        }
+
+        LdapUserEditTracker::record($cn, $this->getCurrentEditorDisplayName(), $editedAt);
     }
 
     /**
@@ -348,6 +375,9 @@ class LdapuserController extends Controller
             if ($ldap->updateUser($principal, ['countryCode' => $gtwCode])) {
                 $currentUser = $this->getCurrentUserLdapData();
                 $currentUsername = $currentUser['samaccountname'] ?? 'Unknown';
+                $refreshedUser = $ldap->getUser($model->cn);
+                $whenChanged = is_array($refreshedUser) ? ($refreshedUser['whenchanged'][0] ?? '') : '';
+                $this->recordLdapUserEdit($model->cn, $whenChanged);
                 Yii::info("User {$currentUsername} updated GTW code for {$model->cn}: {$gtwCode}", 'ldap');
                 Yii::$app->session->setFlash('success', $gtwCode !== ''
                     ? 'บันทึกเลขรหัสผู้ใช้งาน GTW (' . $gtwCode . ') สำเร็จ'
@@ -478,6 +508,7 @@ class LdapuserController extends Controller
                         
                         // Reload model from LDAP to reflect latest data
                         $model->loadFromLdap();
+                        $this->recordLdapUserEdit($model->cn, $model->whenChanged);
 
                         if (Yii::$app->request->isAjax) {
                             // Build response user payload

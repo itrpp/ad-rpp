@@ -27,9 +27,11 @@ class OuUserManager {
         this.ouPathInput = document.getElementById('ouPath');
         this.filterHasGtw = document.getElementById('filterHasGtw');
         this.filterHasEphis = document.getElementById('filterHasEphis');
+        this.filterHasNone = document.getElementById('filterHasNone');
         this.clearIntegrationFilter = document.getElementById('clearIntegrationFilter');
         this.filterGtwHidden = document.getElementById('filterGtwHidden');
         this.filterEphisHidden = document.getElementById('filterEphisHidden');
+        this.filterMissingHidden = document.getElementById('filterMissingHidden');
         
         // Pagination elements
         this.paginationInfo = document.getElementById('paginationInfo');
@@ -132,7 +134,7 @@ class OuUserManager {
             });
         }
 
-        [this.filterHasGtw, this.filterHasEphis].forEach((el) => {
+        [this.filterHasGtw, this.filterHasEphis, this.filterHasNone].forEach((el) => {
             if (el) {
                 el.addEventListener('change', () => this.onIntegrationFilterChange());
             }
@@ -145,6 +147,9 @@ class OuUserManager {
                 }
                 if (this.filterHasEphis) {
                     this.filterHasEphis.checked = false;
+                }
+                if (this.filterHasNone) {
+                    this.filterHasNone.checked = false;
                 }
                 this.onIntegrationFilterChange();
             });
@@ -214,12 +219,13 @@ class OuUserManager {
         return {
             gtw: !!(this.filterHasGtw && this.filterHasGtw.checked),
             ephis: !!(this.filterHasEphis && this.filterHasEphis.checked),
+            missing: !!(this.filterHasNone && this.filterHasNone.checked),
         };
     }
 
     hasActiveIntegrationFilters() {
         const state = this.getIntegrationFilterState();
-        return state.gtw || state.ephis;
+        return state.gtw || state.ephis || state.missing;
     }
 
     saveIntegrationFilters() {
@@ -235,13 +241,17 @@ class OuUserManager {
         const url = new URL(window.location.href);
         const hasUrlGtw = url.searchParams.has('filter_gtw');
         const hasUrlEphis = url.searchParams.has('filter_ephis');
+        const hasUrlMissing = url.searchParams.has('filter_missing');
 
-        if (hasUrlGtw || hasUrlEphis) {
+        if (hasUrlGtw || hasUrlEphis || hasUrlMissing) {
             if (this.filterHasGtw) {
                 this.filterHasGtw.checked = url.searchParams.get('filter_gtw') === '1';
             }
             if (this.filterHasEphis) {
                 this.filterHasEphis.checked = url.searchParams.get('filter_ephis') === '1';
+            }
+            if (this.filterHasNone) {
+                this.filterHasNone.checked = url.searchParams.get('filter_missing') === '1';
             }
             this.syncIntegrationFilterHiddenInputs();
             this.saveIntegrationFilters();
@@ -259,6 +269,9 @@ class OuUserManager {
             }
             if (this.filterHasEphis) {
                 this.filterHasEphis.checked = !!data.ephis;
+            }
+            if (this.filterHasNone) {
+                this.filterHasNone.checked = !!data.missing;
             }
             this.syncIntegrationFilterHiddenInputs();
             this.updateIntegrationFilterQuery();
@@ -278,6 +291,10 @@ class OuUserManager {
             this.filterEphisHidden.value = state.ephis ? '1' : '';
             this.filterEphisHidden.disabled = !state.ephis;
         }
+        if (this.filterMissingHidden) {
+            this.filterMissingHidden.value = state.missing ? '1' : '';
+            this.filterMissingHidden.disabled = !state.missing;
+        }
     }
 
     updateIntegrationFilterQuery() {
@@ -292,6 +309,11 @@ class OuUserManager {
             url.searchParams.set('filter_ephis', '1');
         } else {
             url.searchParams.delete('filter_ephis');
+        }
+        if (state.missing) {
+            url.searchParams.set('filter_missing', '1');
+        } else {
+            url.searchParams.delete('filter_missing');
         }
         const nextUrl = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '');
         window.history.replaceState({}, '', nextUrl);
@@ -310,6 +332,11 @@ class OuUserManager {
                 url.searchParams.set('filter_ephis', '1');
             } else {
                 url.searchParams.delete('filter_ephis');
+            }
+            if (state.missing) {
+                url.searchParams.set('filter_missing', '1');
+            } else {
+                url.searchParams.delete('filter_missing');
             }
             return url.toString();
         } catch (err) {
@@ -373,6 +400,7 @@ class OuUserManager {
         const fStatusRaw = (document.getElementById('filterStatus')?.value || '');
         const filterGtw = !!(this.filterHasGtw && this.filterHasGtw.checked);
         const filterEphis = !!(this.filterHasEphis && this.filterHasEphis.checked);
+        const filterMissing = !!(this.filterHasNone && this.filterHasNone.checked);
         
         const norm = (s) => String(s).replace(/\s+/g, ' ').trim().toLowerCase();
 
@@ -385,11 +413,11 @@ class OuUserManager {
         const allRows = Array.from(document.querySelectorAll('.user-row'));
         
         allRows.forEach(row => {
-            const username = norm(row.querySelector('td:nth-child(2)').textContent);
-            const cn = norm(row.querySelector('td:nth-child(3)').textContent);
-            const department = norm(row.querySelector('td:nth-child(4)').textContent);
-            const titleCell = row.querySelector('td:nth-child(5)');
-            const title = norm(titleCell ? titleCell.textContent : (row.dataset.title || ''));
+            const username = norm(row.dataset.username || '');
+            const cn = norm(row.dataset.cn || '');
+            const displayName = norm(row.dataset.displayname || '');
+            const department = norm(row.dataset.department || '');
+            const title = norm(row.dataset.title || '');
             const ouDn = norm(row.getAttribute('data-ou') || '');
             const ouName = norm(row.dataset.ouname || '');
             const ouPath = norm(row.dataset.oupath || '');
@@ -398,6 +426,7 @@ class OuUserManager {
 
             const globalMatch = !searchTerm || username.includes(searchTerm) ||
                             cn.includes(searchTerm) ||
+                            displayName.includes(searchTerm) ||
                             department.includes(searchTerm) ||
                             title.includes(searchTerm) ||
                             email.includes(searchTerm) ||
@@ -415,9 +444,11 @@ class OuUserManager {
 
             const hasGtw = row.dataset.hasGtw === '1';
             const hasEphis = row.dataset.hasEphis === '1';
+            const hasNone = !hasGtw && !hasEphis;
             const gtwMatch = !filterGtw || hasGtw;
             const ephisMatch = !filterEphis || hasEphis;
-            const integrationMatch = gtwMatch && ephisMatch;
+            const missingMatch = !filterMissing || hasNone;
+            const integrationMatch = gtwMatch && ephisMatch && missingMatch;
 
             row.dataset.matches = (globalMatch && colMatch && ouMatch && integrationMatch) ? '1' : '0';
         });
@@ -457,7 +488,7 @@ class OuUserManager {
         const getVal = (row) => {
             switch (this.sortKey) {
                 case 'row': 
-                    return Number(row.querySelector('td:first-child').textContent) || 0;
+                    return Number(row.dataset.rowindex || row.querySelector('td.col-row-no')?.textContent) || 0;
                 case 'username': 
                     return (row.dataset.username || '').toLowerCase().trim();
                 case 'cn':
@@ -540,7 +571,7 @@ class OuUserManager {
         
         pageRows.forEach((r, idx) => {
             r.style.display = '';
-            const numCell = r.querySelector('td:first-child');
+            const numCell = r.querySelector('td.col-row-no');
             if (numCell) {
                 numCell.textContent = String(start + idx + 1);
             }
@@ -1032,7 +1063,7 @@ class OuUserManager {
     }
 
     updateRowWithFreshDataSwitch(userRow, userData) {
-        const rowIndex = userRow.getAttribute('data-rowindex') || userRow.querySelector('td:first-child').textContent;
+        const rowIndex = userRow.getAttribute('data-rowindex') || userRow.querySelector('td.col-row-no')?.textContent;
         const isDisabled = userData.status === 'disabled';
         
         // Find existing switch wrapper or create new one
@@ -1076,7 +1107,7 @@ class OuUserManager {
     }
 
     updateRowWithFreshData(userRow, userData) {
-        const rowIndex = userRow.getAttribute('data-rowindex') || userRow.querySelector('td:first-child').textContent;
+        const rowIndex = userRow.getAttribute('data-rowindex') || userRow.querySelector('td.col-row-no')?.textContent;
         const isDisabled = userData.status === 'disabled';
         
         userRow.innerHTML = `

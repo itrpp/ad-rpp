@@ -367,19 +367,21 @@ if (!Yii::$app->user->isGuest) {
                             $pageSubtitle = $this->params['pageSubtitle'];
                             $subtitleEditor = isset($pageSubtitle['editor']) ? (string) $pageSubtitle['editor'] : '';
                             $subtitleEditedAt = isset($pageSubtitle['editedAt']) ? (string) $pageSubtitle['editedAt'] : '';
+                            $subtitleEditorLabel = isset($pageSubtitle['editorLabel']) ? (string) $pageSubtitle['editorLabel'] : 'ผู้แก้ไข';
+                            $subtitleEditedAtLabel = isset($pageSubtitle['editedAtLabel']) ? (string) $pageSubtitle['editedAtLabel'] : 'วันที่-เวลาที่แก้ไข';
                             ?>
                             <div class="page-subtitle-meta d-flex flex-wrap align-items-center gap-3 text-muted small mt-1">
                                 <?php if ($subtitleEditor !== ''): ?>
                                     <span>
                                         <i class="fas fa-user-edit me-1"></i>
-                                        ผู้แก้ไข:
+                                        <?= Html::encode($subtitleEditorLabel) ?>:
                                         <strong class="text-secondary fw-semibold"><?= Html::encode($subtitleEditor) ?></strong>
                                     </span>
                                 <?php endif; ?>
                                 <?php if ($subtitleEditedAt !== ''): ?>
                                     <span>
                                         <i class="fas fa-clock me-1"></i>
-                                        วันที่-เวลาที่แก้ไข:
+                                        <?= Html::encode($subtitleEditedAtLabel) ?>:
                                         <strong class="text-secondary fw-semibold"><?= Html::encode($subtitleEditedAt) ?></strong>
                                     </span>
                                 <?php endif; ?>

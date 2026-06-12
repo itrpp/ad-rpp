@@ -11,13 +11,105 @@
     padding: 0.35em 0.55em;
     border-radius: 0.25rem;
 }
+.user-badge-gtw,
 .user-integration-badges .user-badge-gtw {
-    background-color: #6c757d;
+    background-color: #0d6efd;
     color: #fff;
 }
+.user-badge-ephis,
 .user-integration-badges .user-badge-ephis {
-    background-color: #4c6ef5;
+    background-color: #dc3545;
     color: #fff;
+}
+
+.ou-users .table th.col-row-no,
+.ou-users .table td.col-row-no {
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: middle;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.ou-users .table th.col-username,
+.ou-users .table td.col-username {
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.ou-users .table th.col-gtw,
+.ou-users .table td.col-gtw,
+.ou-users .table th.col-ephis,
+.ou-users .table td.col-ephis {
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: middle;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.ou-users .table th.col-whenchanged,
+.ou-users .table td.col-whenchanged {
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.ou-users .table th.col-status,
+.ou-users .table td.col-status {
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: middle;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.ou-users .table th.col-actions,
+.ou-users .table td.col-actions {
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.ou-users .ou-user-action-group {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    gap: 0.35rem;
+    justify-content: flex-start;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.ou-users .ou-user-action-group .ou-user-action-btn {
+    font-size: 0.8rem;
+    font-weight: 600;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+    max-width: 30px;
+    max-height: 30px;
+    padding: 0 !important;
+    line-height: 1;
+    border-radius: 0.3rem;
+    aspect-ratio: 1 / 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.ou-users .ou-user-action-group .ou-user-action-btn i {
+    font-size: 0.85rem;
+    line-height: 1;
+    margin: 0;
+}
+
+.ou-users .ou-user-action-group .ou-user-action-btn:hover {
+    transform: none;
+    box-shadow: none;
 }
 
 .integration-filter-group .form-check-inline {
@@ -60,13 +152,19 @@
 
 .integration-filter-group .user-badge-gtw,
 .integration-filter-label .user-badge-gtw {
-    background-color: #6c757d !important;
+    background-color: #0d6efd !important;
     color: #fff !important;
 }
 
 .integration-filter-group .user-badge-ephis,
 .integration-filter-label .user-badge-ephis {
-    background-color: #4c6ef5 !important;
+    background-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+.integration-filter-group .user-badge-none,
+.integration-filter-label .user-badge-none {
+    background-color: #6c757d !important;
     color: #fff !important;
 }
 
@@ -169,6 +267,21 @@
 
 .table td.text-end {
     text-align: right;
+}
+
+.ou-users .table th.col-cn,
+.ou-users .table td.col-cn {
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.ou-users .table .col-title {
+    width: 120px;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .btn-group {
@@ -769,7 +882,7 @@ td[title]:hover {
 }
 
 /* Center switch in status column */
-td.text-center .toggle-status-wrapper {
+.ou-users .table td.col-status .toggle-status-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;

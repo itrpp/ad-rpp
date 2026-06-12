@@ -2,6 +2,7 @@
 use yii\helpers\Html;
 use yii\bootstrap5\ActiveForm;
 use common\components\LdapHelper;
+use common\components\LdapUserEditTracker;
 use common\components\PermissionManager;
 
 /** @var common\models\LdapUser $model */
@@ -24,11 +25,17 @@ if ($canEditGtwOnly || $readOnly) {
 }
 $this->params['breadcrumbs'][] = $model->cn;
 
+$lastEditMeta = LdapUserEditTracker::get($model->cn) ?? [];
+$lastEditedAt = LdapUserEditTracker::formatWhenChanged($model->whenChanged);
+if ($lastEditedAt === '' && !empty($lastEditMeta['editedAt'])) {
+    $lastEditedAt = (string)$lastEditMeta['editedAt'];
+}
+
 $this->params['pageSubtitle'] = [
-    'editor' => Yii::$app->session->get('ldapUserData')['displayname']
-        ?? Yii::$app->session->get('ldapUserData')['samaccountname']
-        ?? 'Unknown',
-    'editedAt' => date('d/m/Y H:i:s'),
+    'editorLabel' => 'ผู้แก้ไขก่อนหน้า',
+    'editedAtLabel' => 'วันที่-เวลาที่แก้ไขก่อนหน้า',
+    'editor' => trim((string)($lastEditMeta['editor'] ?? '')),
+    'editedAt' => $lastEditedAt,
 ];
 
 $roInput = ['readonly' => true, 'disabled' => true, 'class' => 'form-control bg-light'];

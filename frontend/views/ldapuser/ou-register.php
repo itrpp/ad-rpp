@@ -6,6 +6,7 @@ use yii\web\ForbiddenHttpException;
 use yii\widgets\ActiveForm;
 use yii\widgets\LinkPager;
 use common\components\PermissionManager;
+use common\models\LdapUser;
 
 // Check if user is logged in
 if (Yii::$app->user->isGuest) {
@@ -51,7 +52,13 @@ if (!function_exists('formatThaiAdDate')) {
 }
 ?>
 
+<?php
+$filterHasGtw = Yii::$app->request->get('filter_gtw') === '1';
+$filterHasEphis = Yii::$app->request->get('filter_ephis') === '1';
+$filterMissingIntegration = Yii::$app->request->get('filter_missing') === '1';
+?>
 <?php $this->registerCssFile('@web/css/ou-user.css'); ?>
+<?php $this->registerJsFile('@web/js/ou-register-filters.js', ['depends' => [\yii\web\JqueryAsset::class]]); ?>
 <style>
 /* Cursor styles for interactive elements */
 .user-row {
@@ -191,16 +198,48 @@ a {
             </div>
             <div class="card-body">
                 <?php if (isset($pagination) && $pagination->totalCount > 0): ?>
-                <div class="ou-users">
+                <div class="ou-users" data-register-list="1" data-total-count="<?= (int) $pagination->totalCount ?>">
                     <h5 class="mb-3">
                         Users in this OU:
-                        <span class="badge bg-info ms-1"><?= (int) $pagination->totalCount ?> คน</span>
+                        <span class="badge bg-info ms-1" id="filteredCount" data-total="<?= (int) $pagination->totalCount ?>"><?= (int) $pagination->totalCount ?> คน</span>
                     </h5>
+                    <div class="row mb-3">
+                        <div class="col-md-6"></div>
+                        <div class="col-md-6">
+                            <div class="integration-filter-group d-flex flex-wrap align-items-center gap-2 justify-content-md-end">
+                                <span class="small text-muted me-1"><i class="fas fa-filter me-1"></i>กรองตามระบบ</span>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="filterHasGtw" value="1"<?= $filterHasGtw ? ' checked' : '' ?>>
+                                    <label class="form-check-label integration-filter-label" for="filterHasGtw">
+                                        <span class="badge user-badge-gtw">GTW</span>
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="filterHasEphis" value="1"<?= $filterHasEphis ? ' checked' : '' ?>>
+                                    <label class="form-check-label integration-filter-label" for="filterHasEphis">
+                                        <span class="badge user-badge-ephis">e-phis</span>
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="filterHasNone" value="1"<?= $filterMissingIntegration ? ' checked' : '' ?>>
+                                    <label class="form-check-label integration-filter-label" for="filterHasNone">
+                                        <span class="badge user-badge-none">ยังไม่มี</span>
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="clearIntegrationFilter" title="ล้างตัวกรองรหัส" aria-label="ล้างตัวกรองรหัส">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                <small class="text-muted ms-1 d-none d-xl-inline">กรองเฉพาะหน้านี้</small>
+                            </div>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-bordered table-striped">
                             <thead>
                                 <tr>
-                                    <th style="width: 50px">No</th>
+                                    <th class="text-end col-row-no">No.</th>
+                                    <th class="col-ephis text-center">e-phis</th>
+                                    <th class="col-gtw text-center">GTW</th>
                                     <th>Username</th>
                                     <th>ชื่อที่แสดงในระบบ</th>
                                     <th>ผู้ใช้งาน (CN)</th>
@@ -208,7 +247,7 @@ a {
                                     <th>บริษัท/(บุคลากรผู้ติดต่อ)</th>
                                     <th>วันที่ลงทะเบียน</th>
                                     <th>Status</th>
-                                    <th style="width: 170px">Actions</th>
+                                    <th class="col-actions">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -232,9 +271,41 @@ a {
                                     $userAccountControl = isset($user['useraccountcontrol']) ? intval($user['useraccountcontrol']) : 0;
                                     $ACCOUNTDISABLE = 0x0002;
                                     $isDisabled = ($userAccountControl & $ACCOUNTDISABLE);
+                                    $getUserAttr = static function (array $user, string $key): string {
+                                        $keyLower = strtolower($key);
+                                        foreach ($user as $k => $v) {
+                                            if (strtolower((string)$k) === $keyLower) {
+                                                if (is_array($v)) {
+                                                    return trim((string)($v[0] ?? ''));
+                                                }
+                                                return trim((string)$v);
+                                            }
+                                        }
+                                        return '';
+                                    };
+                                    $gtwCode = LdapUser::normalizeGtwCode($getUserAttr($user, 'countrycode'));
+                                    $ephisCode = trim($getUserAttr($user, 'physicaldeliveryofficename'));
+                                    $hasGtw = $gtwCode !== '' && preg_match('/^\d+$/', $gtwCode) === 1;
+                                    $hasEphis = $ephisCode !== '' && preg_match('/^\d+$/', $ephisCode) === 1;
                                 ?>
-                                <tr class="user-row" data-ou="<?= Html::encode($mainOu['dn']) ?>">
-                                    <td><?= $counter++ ?></td>
+                                <tr class="user-row"
+                                    data-ou="<?= Html::encode($mainOu['dn']) ?>"
+                                    data-username="<?= Html::encode($username) ?>"
+                                    data-cn="<?= Html::encode($cn) ?>"
+                                    data-displayname="<?= Html::encode($displayName) ?>"
+                                    data-department="<?= Html::encode($department) ?>"
+                                    data-company="<?= Html::encode($company) ?>"
+                                    data-has-gtw="<?= $hasGtw ? '1' : '0' ?>"
+                                    data-has-ephis="<?= $hasEphis ? '1' : '0' ?>"
+                                    data-rowindex="<?= $counter ?>"
+                                >
+                                    <td class="text-end col-row-no"><?= $counter ?></td>
+                                    <td class="align-middle text-center col-ephis">
+                                        <?= $this->render('_user_integration_badges', ['user' => $user, 'type' => 'ephis']) ?>
+                                    </td>
+                                    <td class="align-middle text-center col-gtw">
+                                        <?= $this->render('_user_integration_badges', ['user' => $user, 'type' => 'gtw']) ?>
+                                    </td>
                                     <td><?= Html::encode($username) ?></td>
                                     <td><?= Html::encode($displayName) ?></td>
                                     <td><?= Html::encode($cn) ?></td>
@@ -265,27 +336,24 @@ a {
                                             <span class="badge badge-success">Enabled</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center align-middle">
-                                        <?= $this->render('_user_integration_badges', ['user' => $user]) ?>
+                                    <td class="align-middle col-actions">
+                                        <div class="btn-group ou-user-action-group">
                                         <?php if ($isSuperUserOnly): ?>
-                                        <div class="btn-group">
                                             <?= Html::a('<i class="fas fa-edit"></i>', ['update', 'cn' => $cn], [
-                                                'class' => 'btn btn-sm btn-primary',
+                                                'class' => 'btn btn-sm btn-primary ou-user-action-btn',
                                                 'title' => 'แก้ไข GTW: ' . Html::encode($displayName ?: $username),
                                             ]) ?>
-                                        </div>
                                         <?php elseif ($canManageRegister): ?>
-                                        <div class="btn-group">
                                             <?= Html::a('<i class="fas fa-edit"></i>', ['update', 'cn' => $cn], [
-                                                'class' => 'btn btn-sm btn-primary',
+                                                'class' => 'btn btn-sm btn-primary ou-user-action-btn',
                                                 'title' => 'แก้ไขข้อมูล/สิทธิ์/กลุ่ม: ' . Html::encode($displayName ?: $username),
                                             ]) ?>
                                             <?= Html::a('<i class="fas fa-exchange-alt"></i>', ['move', 'cn' => $cn], [
-                                                'class' => 'btn btn-sm btn-warning',
+                                                'class' => 'btn btn-sm btn-warning ou-user-action-btn',
                                                 'title' => 'ย้าย OU (อนุมัติ)',
                                                 'method' => 'post',
                                             ]) ?>
-                                            <button type="button" class="btn btn-sm btn-danger delete-user" 
+                                            <button type="button" class="btn btn-sm btn-danger delete-user ou-user-action-btn"
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#deleteUserModal"
                                                 data-cn="<?= Html::encode($cn) ?>"
@@ -293,10 +361,11 @@ a {
                                                 title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
-                                        </div>
                                         <?php endif; ?>
+                                        </div>
                                     </td>
                                 </tr>
+                                <?php $counter++; ?>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
@@ -365,33 +434,6 @@ a {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // User Search Functionality
-    const userSearch = document.getElementById('userSearch');
-    const searchButton = document.getElementById('searchButton');
-    const userRows = document.querySelectorAll('.user-row');
-
-    function filterUsers() {
-        const searchTerm = userSearch.value.toLowerCase();
-        
-        userRows.forEach(row => {
-            const username = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-            const displayName = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-            const department = row.querySelector('td:nth-child(4)').textContent.toLowerCase();
-            const email = row.querySelector('td:nth-child(5)').textContent.toLowerCase();
-            
-            const matches = username.includes(searchTerm) || 
-                          displayName.includes(searchTerm) || 
-                          department.includes(searchTerm) || 
-                          email.includes(searchTerm);
-            
-            row.style.display = matches ? '' : 'none';
-        });
-    }
-
-    userSearch.addEventListener('input', filterUsers);
-    searchButton.addEventListener('click', filterUsers);
-
-
     // Delete User Modal Functionality
     const deleteButtons = document.querySelectorAll('.delete-user');
     const deleteModal = document.getElementById('deleteUserModal');

@@ -109,6 +109,7 @@ $getUserAttr = function (array $user, $key) {
                     $currentOuPath = (string) Yii::$app->request->get('ou', '');
                     $filterHasGtw = Yii::$app->request->get('filter_gtw') === '1';
                     $filterHasEphis = Yii::$app->request->get('filter_ephis') === '1';
+                    $filterMissingIntegration = Yii::$app->request->get('filter_missing') === '1';
 
                     // Helper สำหรับทำ highlight คำค้นในผลลัพธ์
                     $highlightSearch = function ($text) use ($searchValue) {
@@ -133,6 +134,7 @@ $getUserAttr = function (array $user, $key) {
                         <input type="hidden" name="ou" id="ouPath" value="<?= Html::encode($currentOuPath) ?>">
                         <input type="hidden" name="filter_gtw" id="filterGtwHidden" value="<?= $filterHasGtw ? '1' : '' ?>">
                         <input type="hidden" name="filter_ephis" id="filterEphisHidden" value="<?= $filterHasEphis ? '1' : '' ?>">
+                        <input type="hidden" name="filter_missing" id="filterMissingHidden" value="<?= $filterMissingIntegration ? '1' : '' ?>">
                         <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
                         <input type="text" name="search" class="form-control float-right border-start-0" id="userSearch" placeholder="Search users by name, username, email, department or title..." aria-label="Search users" value="<?= Html::encode($searchValue) ?>">
                         <button type="button" class="btn btn-outline-secondary" id="clearUserSearch" aria-label="Clear search" title="Clear">
@@ -240,7 +242,7 @@ $getUserAttr = function (array $user, $key) {
                         </div>
                         <div class="col-md-6">
                             <div class="integration-filter-group d-flex flex-wrap align-items-center gap-2">
-                                <span class="small text-muted me-1"><i class="fas fa-filter me-1"></i>กรองรหัส:</span>
+                                <span class="small text-muted me-1"><i class="fas fa-filter me-1"></i>กรองตามระบบ</span>
                                 <div class="form-check form-check-inline mb-0">
                                     <input class="form-check-input" type="checkbox" id="filterHasGtw" value="1"<?= $filterHasGtw ? ' checked' : '' ?>>
                                     <label class="form-check-label integration-filter-label" for="filterHasGtw">
@@ -251,6 +253,12 @@ $getUserAttr = function (array $user, $key) {
                                     <input class="form-check-input" type="checkbox" id="filterHasEphis" value="1"<?= $filterHasEphis ? ' checked' : '' ?>>
                                     <label class="form-check-label integration-filter-label" for="filterHasEphis">
                                         <span class="badge user-badge-ephis">e-phis</span>
+                                    </label>
+                                </div>
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="filterHasNone" value="1"<?= $filterMissingIntegration ? ' checked' : '' ?>>
+                                    <label class="form-check-label integration-filter-label" for="filterHasNone">
+                                        <span class="badge user-badge-none">ยังไม่มี</span>
                                     </label>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="clearIntegrationFilter" title="ล้างตัวกรองรหัส" aria-label="ล้างตัวกรองรหัส">
@@ -269,14 +277,16 @@ $getUserAttr = function (array $user, $key) {
                                 <table class="table table-bordered table-striped">
                                     <thead>
                                         <tr>
-                                    <th style="width: 60px" class="text-end sortable" data-sort-key="row" aria-sort="asc">No.</th>
-                                    <th style="width: 40px"class="sortable" data-sort-key="username" aria-sort="none">Username <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                                    <th style="width: 180px"class="sortable" data-sort-key="cn" aria-sort="none">ชื่อ-นามสกุล (CN) <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                                    <th class="sortable" data-sort-key="department" aria-sort="none">หน่วยงาน <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                                    <th class="sortable" data-sort-key="title" aria-sort="none">ตำแหน่ง <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                                    <th style="width: 160px" class="sortable" data-sort-key="whenchanged" aria-sort="none">วันที่แก้ไขล่าสุด <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                                    <th style="width: 100px" class="text-center">สถานะ</th>
-                                    <th style="width: 170px">Actions</th>
+                                    <th class="text-end sortable col-row-no" data-sort-key="row" aria-sort="asc">No.</th>
+                                    <th class="col-ephis text-center">e-phis</th>
+                                    <th class="col-gtw text-center">GTW</th>
+                                    <th class="sortable col-username" data-sort-key="username" aria-sort="none">Username <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                                    <th class="sortable col-cn" data-sort-key="cn" aria-sort="none">ชื่อ-นามสกุล (CN) <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                                    <th style="width: 120px; max-width: 160px" class="sortable" data-sort-key="department" aria-sort="none">หน่วยงาน <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                                    <th style="width: 120px; max-width: 140px" class="sortable col-title" data-sort-key="title" aria-sort="none">ตำแหน่ง <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                                    <th class="sortable col-whenchanged" data-sort-key="whenchanged" aria-sort="none">วันที่แก้ไขล่าสุด <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                                    <th class="text-center col-status">สถานะ</th>
+                                    <th class="col-actions">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -334,12 +344,24 @@ $getUserAttr = function (array $user, $key) {
                                     data-has-ephis="<?= $hasEphis ? '1' : '0' ?>"
                                     data-rowindex="<?= $counter ?>"
                                 >
-                                    <td class="text-end"><?= $counter ?></td>
-                                            <td><?= $highlightSearch($getUserAttr($user, 'samaccountname')) ?></td>
-                                            <td><?= $highlightSearch($getUserAttr($user, 'cn')) ?></td>
+                                    <td class="text-end col-row-no"><?= $counter ?></td>
+                                            <td class="align-middle text-center col-ephis">
+                                                <?= $this->render('_user_integration_badges', ['user' => $user, 'type' => 'ephis']) ?>
+                                            </td>
+                                            <td class="align-middle text-center col-gtw">
+                                                <?= $this->render('_user_integration_badges', ['user' => $user, 'type' => 'gtw']) ?>
+                                            </td>
+                                            <td class="col-username"><?= $highlightSearch($getUserAttr($user, 'samaccountname')) ?></td>
+                                            <?php $cnText = $getUserAttr($user, 'cn'); ?>
+                                            <td class="col-cn" title="<?= Html::encode($cnText) ?>">
+                                                <?= $highlightSearch($cnText) ?>
+                                            </td>
                                             <td><?= $highlightSearch($getUserAttr($user, 'department')) ?></td>
-                                            <td><?= $highlightSearch($getUserAttr($user, 'title') ?: 'ยังไม่ระบุ') ?></td>
-                                            <td>
+                                            <?php $titleText = $getUserAttr($user, 'title') ?: 'ยังไม่ระบุ'; ?>
+                                            <td class="col-title" title="<?= Html::encode($getUserAttr($user, 'title') ?: '') ?>">
+                                                <?= $highlightSearch($titleText) ?>
+                                            </td>
+                                            <td class="col-whenchanged">
                                                 <?php
                                                 // ใช้รูปแบบเดียวกับ update.php แต่เพิ่มความทนทานของรูปแบบข้อมูลจาก LDAP
                                                 $whenChangedThai = 'ยังไม่ระบุ';
@@ -369,7 +391,7 @@ $getUserAttr = function (array $user, $key) {
                                                 echo Html::encode($whenChangedThai);
                                                 ?>
                                             </td>
-                                            <td class="text-center">
+                                            <td class="text-center col-status">
                                                 <?php if ($canToggleStatus): ?>
                                                     <div class="form-check form-switch toggle-status-wrapper d-inline-block">
                                                         <input class="form-check-input toggle-status-switch" 
@@ -389,10 +411,9 @@ $getUserAttr = function (array $user, $key) {
                                                     </span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="text-center align-middle">
-                                                <?= $this->render('_user_integration_badges', ['user' => $user]) ?>
-                                                <div class="btn-group">
-                                                    <button type="button" class="btn btn-sm btn-info view-user" 
+                                            <td class="align-middle col-actions">
+                                                <div class="btn-group ou-user-action-group">
+                                                    <button type="button" class="btn btn-sm btn-info view-user ou-user-action-btn" 
                                                         data-bs-toggle="modal" 
                                                         data-bs-target="#viewUserModal"
                                                         data-user='<?= json_encode([
@@ -411,7 +432,7 @@ $getUserAttr = function (array $user, $key) {
                                                     </button>
                                                     <?php if ($canUpdateUsers): ?>
                                                     <?= Html::a('<i class="fas fa-edit"></i>', ['update', 'cn' => $user['cn']], [
-                                                        'class' => 'btn btn-sm btn-primary',
+                                                        'class' => 'btn btn-sm btn-primary ou-user-action-btn',
                                                         'title' => 'แก้ไขข้อมูลผู้ใช้: ' . Html::encode($user['displayname'] ?: $user['samaccountname']),
                                                         'data' => [
                                                             'toggle' => 'modal',
@@ -430,7 +451,7 @@ $getUserAttr = function (array $user, $key) {
                                                     <?php endif; ?>
                                                     
                                                     <?php if ($canMoveUsers): ?>
-                                                    <?= Html::a('<i class="fas fa-exchange-alt"></i>', ['move', 'cn' => $user['cn']], ['class' => 'btn btn-sm btn-warning', 'title' => 'ย้ายผู้ใช้: ' . Html::encode($user['displayname'] ?: $user['samaccountname'])]) ?>
+                                                    <?= Html::a('<i class="fas fa-exchange-alt"></i>', ['move', 'cn' => $user['cn']], ['class' => 'btn btn-sm btn-warning ou-user-action-btn', 'title' => 'ย้ายผู้ใช้: ' . Html::encode($user['displayname'] ?: $user['samaccountname'])]) ?>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -439,7 +460,7 @@ $getUserAttr = function (array $user, $key) {
                                         <?php endforeach; ?>
                                         <?php if (empty($finalUsers)): ?>
                                         <tr>
-                                            <td colspan="8" class="text-center text-muted py-4">
+                                            <td colspan="9" class="text-center text-muted py-4">
                                                 ไม่พบข้อมูลสำหรับเงื่อนไขที่เลือก
                                             </td>
                                         </tr>
