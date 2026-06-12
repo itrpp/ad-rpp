@@ -119,6 +119,9 @@ class LoginForm extends Model
             }
             
             Yii::$app->session->set('ldapUserData', $sessionData);
+            if (stripos((string)($sessionData['distinguishedname'] ?? ''), 'OU=rpp-register') !== false) {
+                Yii::$app->session->set('showPendingApprovalModal', true);
+            }
             Yii::debug("Session data stored for user: {$this->username}", 'app');
 
             // Assign RBAC role based on LDAP groups/OU so that menus/permissions reflect immediately

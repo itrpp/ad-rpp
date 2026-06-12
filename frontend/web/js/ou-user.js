@@ -422,6 +422,9 @@ class OuUserManager {
             const ouName = norm(row.dataset.ouname || '');
             const ouPath = norm(row.dataset.oupath || '');
             const email = norm(row.dataset.email || '');
+            const postalcode = norm(row.dataset.postalcode || '');
+            const postalDigits = postalcode.replace(/\D/g, '');
+            const searchDigits = searchTerm.replace(/\D/g, '');
             const rowStatus = norm(row.dataset.status || '');
 
             const globalMatch = !searchTerm || username.includes(searchTerm) ||
@@ -430,6 +433,8 @@ class OuUserManager {
                             department.includes(searchTerm) ||
                             title.includes(searchTerm) ||
                             email.includes(searchTerm) ||
+                            postalcode.includes(searchTerm) ||
+                            (searchDigits !== '' && postalDigits.includes(searchDigits)) ||
                             ouDn.includes(searchTerm) ||
                             ouName.includes(searchTerm) ||
                             ouPath.includes(searchTerm);

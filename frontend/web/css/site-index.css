@@ -168,55 +168,32 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Pending Approval Alert Styling */
-#pending-approval-alert {
-    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+/* Pending Approval Modal */
+.pending-approval-modal-content {
     border: 2px solid #ffc107;
     border-radius: 0.75rem;
-    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
-    animation: pulse 2s infinite;
-    position: relative;
     overflow: hidden;
+    box-shadow: 0 8px 24px rgba(255, 193, 7, 0.35);
 }
 
-#pending-approval-alert::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-    z-index: 1;
-}
-
-#pending-approval-alert > * {
-    position: relative;
-    z-index: 2;
-}
-
-#pending-approval-alert .fas.fa-clock {
+.pending-approval-modal-header {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
     color: #856404;
-    font-size: 1.2em;
-    margin-right: 0.5rem;
-    animation: tick 1s ease-in-out infinite;
+    border-bottom: 1px solid #ffc107;
 }
 
-#pending-approval-alert strong {
-    color: #856404;
+.pending-approval-modal-header .modal-title {
     font-weight: 700;
-    font-size: 1.1em;
 }
 
-#pending-approval-alert .text-muted {
-    color: #6c5b00 !important;
-    font-weight: 500;
+#pendingApprovalModal .modal-body {
+    color: #5c4d00;
+    font-size: 1rem;
+    line-height: 1.6;
 }
 
-@keyframes pulse {
-    0% { box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3); }
-    50% { box-shadow: 0 6px 16px rgba(255, 193, 7, 0.5); }
-    100% { box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3); }
+#pendingApprovalModal .modal-body strong {
+    color: #856404;
 }
 
 @keyframes tick {

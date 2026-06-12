@@ -269,11 +269,31 @@
     text-align: right;
 }
 
-.ou-users .table th.col-cn,
-.ou-users .table td.col-cn {
+.ou-users .table th.col-cn {
     width: 1%;
     white-space: nowrap;
     vertical-align: middle;
+}
+
+.ou-users .table td.col-cn {
+    width: 1%;
+    vertical-align: middle;
+}
+
+.ou-users .table td.col-cn .col-cn-name {
+    display: block;
+    white-space: nowrap;
+}
+
+.ou-users .table td.col-cn .col-cn-id-card {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 300;
+    color: #6c757d;
+    line-height: 1.25;
+    white-space: nowrap;
+    margin-top: 0.15rem;
+    letter-spacing: 0.02em;
 }
 
 .ou-users .table .col-title {

@@ -207,21 +207,6 @@ $this->registerCssFile('@web/css/site-index.css');
                 <!-- Logged in user section -->
 
 
-                <div class="row">
-                    <div class="col-12">
-                        <?php if ($currentUserOu === 'rpp-register'): ?>
-                        <div class="alert alert-warning" id="pending-approval-alert">
-                            <i class="fas fa-clock"></i> 
-                            <strong>Pending Approval</strong> - บัญชีของคุณกำลังรอการอนุมัติจากผู้ดูแลระบบ
-                            <div class="mt-2">
-                                <small class="text-muted">กรุณารอการอนุมัติจากผู้ดูแลระบบก่อนที่จะสามารถใช้งานระบบได้เต็มรูปแบบ</small>
-                            </div>
-                        </div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-
             </div>
         </div>
 
@@ -414,45 +399,16 @@ $(document).ready(function() {
     }
     
     function updatePendingApprovalAlert(currentUserOu) {
-        var alertContainer = $('#pending-approval-alert');
-        console.log('Updating Pending Approval Alert. Current OU:', currentUserOu, 'Alert exists:', alertContainer.length > 0);
-        
-        // Update OU display if it exists
         var ouDisplay = $('small:contains("กลุ่มผู้ใช้งานระบบ:")');
         if (ouDisplay.length > 0) {
             var lastOuName = getLastOuNameFromString(currentUserOu);
             ouDisplay.html('<strong>กลุ่มผู้ใช้งานระบบ:</strong> ' + lastOuName);
         }
-        
-        if (currentUserOu === 'rpp-register') {
-            // Show pending approval alert if not already shown
-            if (alertContainer.length === 0) {
-                console.log('Creating Pending Approval Alert...');
-                var alertHtml = '<div class="alert alert-warning" id="pending-approval-alert">' +
-                    '<i class="fas fa-clock"></i> ' +
-                    '<strong>Pending Approval</strong> - บัญชีของคุณกำลังรอการอนุมัติจากผู้ดูแลระบบ' +
-                    '<div class="mt-2">' +
-                    '<small class="text-muted">กรุณารอการอนุมัติจากผู้ดูแลระบบก่อนที่จะสามารถใช้งานระบบได้เต็มรูปแบบ</small>' +
-                    '</div>' +
-                    '</div>';
-                
-                // Insert alert in the logged in user section
-                $('.row .col-12').first().prepend(alertHtml);
-                console.log('Pending Approval Alert created and displayed');
-            } else {
-                console.log('Pending Approval Alert already exists');
-            }
-        } else {
-            // Hide pending approval alert if user is no longer in rpp-register OU
-            if (alertContainer.length > 0) {
-                console.log('Removing Pending Approval Alert...');
-                alertContainer.fadeOut(500, function() {
-                    $(this).remove();
-                    console.log('Pending Approval Alert removed');
-                });
-            } else {
-                console.log('No Pending Approval Alert to remove');
-            }
+
+        if (currentUserOu === 'rpp-register' && typeof window.showPendingApprovalModal === 'function') {
+            window.showPendingApprovalModal();
+        } else if (typeof window.hidePendingApprovalModal === 'function') {
+            window.hidePendingApprovalModal();
         }
     }
 

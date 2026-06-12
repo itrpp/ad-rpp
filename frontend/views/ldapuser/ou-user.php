@@ -136,7 +136,7 @@ $getUserAttr = function (array $user, $key) {
                         <input type="hidden" name="filter_ephis" id="filterEphisHidden" value="<?= $filterHasEphis ? '1' : '' ?>">
                         <input type="hidden" name="filter_missing" id="filterMissingHidden" value="<?= $filterMissingIntegration ? '1' : '' ?>">
                         <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                        <input type="text" name="search" class="form-control float-right border-start-0" id="userSearch" placeholder="Search users by name, username, email, department or title..." aria-label="Search users" value="<?= Html::encode($searchValue) ?>">
+                        <input type="text" name="search" class="form-control float-right border-start-0" id="userSearch" placeholder="ค้นหาชื่อ, username, email, แผนก, ตำแหน่ง หรือเลขบัตร..." aria-label="Search users" value="<?= Html::encode($searchValue) ?>">
                         <button type="button" class="btn btn-outline-secondary" id="clearUserSearch" aria-label="Clear search" title="Clear">
                             <i class="fas fa-times"></i>
                         </button>
@@ -336,6 +336,7 @@ $getUserAttr = function (array $user, $key) {
                                     data-department="<?= Html::encode($getUserAttr($user, 'department')) ?>"
                                     data-title="<?= Html::encode($getUserAttr($user, 'title')) ?>"
                                     data-email="<?= Html::encode($getUserAttr($user, 'mail')) ?>"
+                                    data-postalcode="<?= Html::encode($getUserAttr($user, 'postalcode')) ?>"
                                     data-whencreated="<?= Html::encode($whenCreated) ?>"
                                     data-status="<?= $isDisabled ? 'disabled' : 'enabled' ?>"
                                     data-disabled="<?= $isDisabled ? '1' : '0' ?>"
@@ -352,9 +353,19 @@ $getUserAttr = function (array $user, $key) {
                                                 <?= $this->render('_user_integration_badges', ['user' => $user, 'type' => 'gtw']) ?>
                                             </td>
                                             <td class="col-username"><?= $highlightSearch($getUserAttr($user, 'samaccountname')) ?></td>
-                                            <?php $cnText = $getUserAttr($user, 'cn'); ?>
-                                            <td class="col-cn" title="<?= Html::encode($cnText) ?>">
-                                                <?= $highlightSearch($cnText) ?>
+                                            <?php
+                                            $cnText = $getUserAttr($user, 'cn');
+                                            $idCardText = $getUserAttr($user, 'postalcode');
+                                            $cnTitle = $cnText;
+                                            if ($idCardText !== '') {
+                                                $cnTitle .= ' | ' . $idCardText;
+                                            }
+                                            ?>
+                                            <td class="col-cn" title="<?= Html::encode($cnTitle) ?>">
+                                                <span class="col-cn-name"><?= $highlightSearch($cnText) ?></span>
+                                                <?php if ($idCardText !== ''): ?>
+                                                    <span class="col-cn-id-card"><?= $highlightSearch($idCardText) ?></span>
+                                                <?php endif; ?>
                                             </td>
                                             <td><?= $highlightSearch($getUserAttr($user, 'department')) ?></td>
                                             <?php $titleText = $getUserAttr($user, 'title') ?: 'ยังไม่ระบุ'; ?>

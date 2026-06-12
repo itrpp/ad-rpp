@@ -50,6 +50,19 @@ if (!Yii::$app->user->isGuest) {
         }
     }
 }
+
+$autoShowPendingApprovalModal = false;
+if (!Yii::$app->user->isGuest && $currentUserOu === 'rpp-register') {
+    if (Yii::$app->session->get('showPendingApprovalModal')) {
+        Yii::$app->session->remove('showPendingApprovalModal');
+        $autoShowPendingApprovalModal = true;
+    } elseif (
+        Yii::$app->controller->id === 'site'
+        && Yii::$app->controller->action->id === 'index'
+    ) {
+        $autoShowPendingApprovalModal = true;
+    }
+}
 ?>
 <?php $this->beginPage() ?>
 <!DOCTYPE html>
@@ -103,6 +116,33 @@ if (!Yii::$app->user->isGuest) {
         .content-header .page-subtitle-meta {
             line-height: 1.5;
         }
+
+        .pending-approval-modal-content {
+            border: 2px solid #ffc107;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(255, 193, 7, 0.35);
+        }
+
+        .pending-approval-modal-header {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+            border-bottom: 1px solid #ffc107;
+        }
+
+        .pending-approval-modal-header .modal-title {
+            font-weight: 700;
+        }
+
+        #pendingApprovalModal .modal-body {
+            color: #5c4d00;
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        #pendingApprovalModal .modal-body strong {
+            color: #856404;
+        }
         .content-header .breadcrumb {
             background: transparent;
             padding: 0;
@@ -150,6 +190,37 @@ if (!Yii::$app->user->isGuest) {
         .user-dropdown-header .badge.bg-success { background-color: rgba(255,255,255,0.95) !important; color: #0f5132 !important; }
         .user-dropdown-header .badge.bg-secondary { background-color: rgba(255,255,255,0.9) !important; color: #495057 !important; }
         .user-dropdown-header .badge.bg-light { background-color: rgba(255,255,255,0.85) !important; color: #212529 !important; }
+        .user-dropdown-header .badge.bg-warning { background-color: #ffc107 !important; color: #664d03 !important; }
+
+        .navbar-user-label {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+            max-width: min(320px, 42vw);
+        }
+
+        .navbar-user-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 180px;
+        }
+
+        .navbar-user-status {
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 0.2rem 0.45rem;
+            line-height: 1.2;
+            white-space: nowrap;
+        }
+
+        @media (max-width: 576px) {
+            .navbar-user-name {
+                max-width: 96px;
+            }
+        }
+
         .user-dropdown-body .dropdown-item {
             padding: 0.5rem 1rem;
             font-size: 0.9rem;
@@ -244,13 +315,31 @@ if (!Yii::$app->user->isGuest) {
             <?php else: ?>
                 <li class="nav-item dropdown">
                     <?php
+                    $navbarStatusBadge = '';
+                    if ($currentUserOu === 'rpp-register') {
+                        $navbarStatusBadge = '<span class="badge bg-warning text-dark navbar-user-status">รออนุมัติ</span>';
+                    } elseif ($isAdmin) {
+                        $navbarStatusBadge = '<span class="badge bg-success navbar-user-status">ผู้ดูแลระบบ</span>';
+                    } elseif ($isSuperUser) {
+                        $navbarStatusBadge = '<span class="badge bg-secondary navbar-user-status">Superuser</span>';
+                    } else {
+                        $navbarStatusBadge = '<span class="badge bg-light text-dark navbar-user-status">ผู้ใช้ทั่วไป</span>';
+                    }
+
+                    $navbarUserLabel = '<span class="navbar-user-label">'
+                        . '<i class="fas fa-user-circle me-1"></i>'
+                        . '<span class="navbar-user-name">' . Html::encode($user->displayName) . '</span>'
+                        . $navbarStatusBadge
+                        . '</span>';
+
                     echo Html::a(
-                        '<i class="fas fa-user-circle me-2"></i>' . Html::encode($user->displayName),
+                        $navbarUserLabel,
                         '#',
                         [
                             'class' => 'nav-link dropdown-toggle',
                             'data-bs-toggle' => 'dropdown',
-                            'aria-expanded' => 'false'
+                            'aria-expanded' => 'false',
+                            'id' => 'navbarUserDropdown',
                         ]
                     );
                     ?>
@@ -258,9 +347,10 @@ if (!Yii::$app->user->isGuest) {
                         <div class="user-dropdown-header">
                             <div class="user-name text-truncate" title="<?= Html::encode($user->cn) ?>"><?= Html::encode($user->cn) ?></div>
                             <div class="user-dept text-truncate" title="<?= Html::encode($user->department) ?>"><?= Html::encode($user->department ?: '—') ?></div>
-                            <?php if ($currentUserOu != 'rpp-register'): ?>
-                            <div class="user-role">
-                                <?php if ($isAdmin): ?>
+                            <div class="user-role" id="navbarUserStatus">
+                                <?php if ($currentUserOu === 'rpp-register'): ?>
+                                    <span class="badge bg-warning text-dark">ลงทะเบียนแล้ว · รออนุมัติ</span>
+                                <?php elseif ($isAdmin): ?>
                                     <span class="badge bg-success">ผู้ดูแลระบบ</span>
                                 <?php elseif ($isSuperUser): ?>
                                     <span class="badge bg-secondary">Superuser</span>
@@ -268,7 +358,6 @@ if (!Yii::$app->user->isGuest) {
                                     <span class="badge bg-light text-dark">ผู้ใช้ทั่วไป</span>
                                 <?php endif; ?>
                             </div>
-                            <?php endif; ?>
                         </div>
                         <div class="dropdown-divider"></div>
                         <div class="user-dropdown-body">
@@ -433,6 +522,38 @@ if (!Yii::$app->user->isGuest) {
 </div>
 
 <?php if (!Yii::$app->user->isGuest): ?>
+<?php if ($currentUserOu === 'rpp-register'): ?>
+<!-- Pending register approval -->
+<div class="modal fade"
+     id="pendingApprovalModal"
+     tabindex="-1"
+     aria-labelledby="pendingApprovalModalLabel"
+     aria-hidden="true"
+     data-bs-backdrop="static"
+     data-bs-keyboard="false"
+     data-auto-show="<?= $autoShowPendingApprovalModal ? '1' : '0' ?>">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content pending-approval-modal-content">
+            <div class="modal-header pending-approval-modal-header">
+                <h5 class="modal-title" id="pendingApprovalModalLabel">
+                    <i class="fas fa-clock me-2"></i>รอการอนุมัติการใช้งาน
+                </h5>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">
+                    สถานะของคุณคือ <strong>ลงทะเบียนเรียบร้อยแล้ว</strong>
+                    กรุณารอผู้ดูแลระบบอนุมัติก่อนจึงจะใช้งานระบบได้เต็มรูปแบบ
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-1"></i>รับทราบ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 <!-- Account Status Modal -->
 <div class="modal fade" id="accountDisabledModal" tabindex="-1" aria-labelledby="accountDisabledModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
@@ -691,8 +812,41 @@ if (!Yii::$app->user->isGuest) {
         }
     }, true);
     
+    function showPendingApprovalModalIfNeeded() {
+        var modalEl = document.getElementById('pendingApprovalModal');
+        if (!modalEl || modalEl.getAttribute('data-auto-show') !== '1') {
+            return;
+        }
+        if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            return;
+        }
+        var instance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        instance.show();
+    }
+
+    window.showPendingApprovalModal = function() {
+        var modalEl = document.getElementById('pendingApprovalModal');
+        if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            return;
+        }
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    };
+
+    window.hidePendingApprovalModal = function() {
+        var modalEl = document.getElementById('pendingApprovalModal');
+        if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            return;
+        }
+        var instance = bootstrap.Modal.getInstance(modalEl);
+        if (instance) {
+            instance.hide();
+        }
+    };
+
     // Initialize on page load
     document.addEventListener('DOMContentLoaded', function() {
+        showPendingApprovalModalIfNeeded();
+
         // Check immediately on page load
         checkAccountStatus(false);
         

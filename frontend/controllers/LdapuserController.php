@@ -1020,7 +1020,7 @@ class LdapuserController extends Controller
      * Build deduplicated, filtered and sorted list of user entries for ou-user page.
      * @param array $allDomainUsers
      * @param array $ouUsers
-     * @param string|null $search Optional search term to filter by username, cn, department, mail, title
+     * @param string|null $search Optional search term to filter by username, cn, department, mail, title, postalcode (เลขบัตร)
      * @return array Array of ['ou_dn' => string, 'user' => array]
      */
     private function buildFinalUsersList(array $allDomainUsers, array $ouUsers, $search = null)
@@ -1084,7 +1084,7 @@ class LdapuserController extends Controller
                 $searchKeys = [
                     'samaccountname', 'cn', 'displayname', 'givenname', 'sn',
                     'department', 'mail', 'title', 'company', 'telephonenumber', 'ou',
-                    'physicaldeliveryofficename', 'description'
+                    'physicaldeliveryofficename', 'description', 'postalcode',
                 ];
                 $words = array_filter(preg_split('/\s+/u', $q));
                 if (!empty($words)) {
@@ -1095,6 +1095,12 @@ class LdapuserController extends Controller
                         $val = $this->getLdapAttr($u, $attr);
                         if ($val !== '') {
                             $concatNorm .= ' ' . preg_replace('/\s+/u', ' ', mb_strtolower($val));
+                            if ($attr === 'postalcode') {
+                                $digits = preg_replace('/[^0-9]/', '', $val);
+                                if ($digits !== '') {
+                                    $concatNorm .= ' ' . $digits;
+                                }
+                            }
                         }
                     }
                     $dn = $this->getLdapAttr($u, 'distinguishedname');
@@ -1106,7 +1112,10 @@ class LdapuserController extends Controller
                         if ($word === '') {
                             continue;
                         }
-                        if (mb_strpos($concatNorm, $word) === false) {
+                        $wordDigits = preg_replace('/[^0-9]/', '', $word);
+                        $matched = mb_strpos($concatNorm, $word) !== false
+                            || ($wordDigits !== '' && mb_strpos($concatNorm, $wordDigits) !== false);
+                        if (!$matched) {
                             return false;
                         }
                     }
