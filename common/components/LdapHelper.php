@@ -1797,4 +1797,39 @@ class LdapHelper
         return $day . ' ' . $thaiMonths[$monthIndex - 1] . ' ' . $year . ' เวลา ' . $time . ' น.';
     }
 
+    /**
+     * ค่าตัวเลขสำหรับเรียงลำดับ whenCreated/whenChanged จาก AD
+     */
+    public static function normalizeAdTimestampForSort($value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        $raw = is_array($value) ? ($value[0] ?? '') : (string)$value;
+
+        return preg_replace('/[^0-9]/', '', $raw);
+    }
+
+    /**
+     * เรียงวันที่ AD จากใหม่ไปเก่า (คืนค่าให้ usort)
+     */
+    public static function compareAdTimestampDesc($valueA, $valueB): int
+    {
+        $timestampA = self::normalizeAdTimestampForSort($valueA);
+        $timestampB = self::normalizeAdTimestampForSort($valueB);
+
+        if ($timestampA === '' && $timestampB === '') {
+            return 0;
+        }
+        if ($timestampA === '') {
+            return 1;
+        }
+        if ($timestampB === '') {
+            return -1;
+        }
+
+        return strcmp($timestampB, $timestampA);
+    }
+
 }

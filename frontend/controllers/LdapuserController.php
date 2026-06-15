@@ -1336,10 +1336,18 @@ class LdapuserController extends Controller
         $registerUsers = [];
         $mainOuUsers = $ldap->getUsersByOu($mainOu['dn']);
         if (!empty($mainOuUsers)) {
-            // Sort users by display name
-            usort($mainOuUsers, function($a, $b) {
+            // เรียงตามวันที่ลงทะเบียน (ใหม่สุดก่อน)
+            usort($mainOuUsers, function ($a, $b) {
+                $whenCreatedA = $a['whencreated'] ?? '';
+                $whenCreatedB = $b['whencreated'] ?? '';
+                $dateCompare = LdapHelper::compareAdTimestampDesc($whenCreatedA, $whenCreatedB);
+                if ($dateCompare !== 0) {
+                    return $dateCompare;
+                }
+
                 $nameA = isset($a['displayname'][0]) ? $a['displayname'][0] : '';
                 $nameB = isset($b['displayname'][0]) ? $b['displayname'][0] : '';
+
                 return strcasecmp($nameA, $nameB);
             });
             $ouUsers[$mainOu['dn']] = $mainOuUsers;
