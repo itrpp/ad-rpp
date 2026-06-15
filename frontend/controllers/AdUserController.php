@@ -216,10 +216,13 @@ class AdUserController extends Controller
 
             if ($model->createUser()) {
                 Yii::$app->session->setFlash('success', 'ลงทะเบียนสำเร็จ กรุณาเข้าสู่ระบบด้วยบัญชีที่ลงทะเบียน');
+                $loginUrl = Yii::$app->urlManager->createUrl(['site/login']);
+                $indexUrl = Yii::$app->urlManager->createUrl(['site/index']);
+                Yii::$app->user->setReturnUrl($indexUrl);
                 if (Yii::$app->request->isAjax) {
                     return $this->asJson([
                         'success' => true,
-                        'redirect' => Yii::$app->urlManager->createUrl(['site/login']),
+                        'redirect' => $loginUrl,
                     ]);
                 }
                 return $this->redirect(['site/login']);

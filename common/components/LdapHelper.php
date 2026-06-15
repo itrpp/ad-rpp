@@ -1768,4 +1768,33 @@ class LdapHelper
         return false;
     }
 
+    /**
+     * แปลงค่า whenCreated/whenChanged จาก AD เป็นวันที่-เวลาแบบไทย
+     */
+    public static function formatAdDateTimeThai($value, string $fallback = 'ยังไม่ระบุ'): string
+    {
+        if ($value === null || $value === '') {
+            return $fallback;
+        }
+
+        $raw = is_array($value) ? ($value[0] ?? '') : (string)$value;
+        if ($raw === '' || !preg_match('/^(\d{8})(\d{6})/', $raw, $matches)) {
+            return $fallback;
+        }
+
+        $dt = \DateTime::createFromFormat('YmdHis', $matches[1] . $matches[2], new \DateTimeZone('UTC'));
+        if ($dt === false) {
+            return $fallback;
+        }
+
+        $dt->setTimezone(new \DateTimeZone('Asia/Bangkok'));
+        $thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+        $day = (int)$dt->format('j');
+        $monthIndex = (int)$dt->format('n');
+        $year = (int)$dt->format('Y') + 543;
+        $time = $dt->format('H:i');
+
+        return $day . ' ' . $thaiMonths[$monthIndex - 1] . ' ' . $year . ' เวลา ' . $time . ' น.';
+    }
+
 }

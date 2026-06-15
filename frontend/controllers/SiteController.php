@@ -575,10 +575,10 @@ class SiteController extends Controller
             }
         }
 
-        // เมนูระบบงาน (จาก DB) — แสดงตามสิทธิ์
+        // เมนูระบบงาน (จาก DB) — แสดงเฉพาะผู้ใช้ที่อนุมัติแล้ว (ไม่รวม rpp-register)
         $isAdmin = false;
         $serviceMenuItems = [];
-        if (!Yii::$app->user->isGuest) {
+        if (!Yii::$app->user->isGuest && $currentUserOu !== 'rpp-register') {
             try {
                 $pm = new PermissionManager();
                 $isAdmin = $pm->isLdapAdmin();
@@ -607,12 +607,16 @@ class SiteController extends Controller
     public function actionLogin()
     {
         if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
+            return $this->redirect(['site/index']);
+        }
+
+        if (Yii::$app->session->hasFlash('success')) {
+            Yii::$app->user->setReturnUrl(Yii::$app->urlManager->createUrl(['site/index']));
         }
 
         $model = new LoginForm();
         if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
+            return $this->redirectAfterLogin();
         }
 
         $model->password = '';
@@ -620,6 +624,24 @@ class SiteController extends Controller
         return $this->render('login', [
             'model' => $model,
         ]);
+    }
+
+    /**
+     * หลัง login สำเร็จ — ผู้ใช้รออนุมัติ (rpp-register) ไปหน้าแรกเสมอ
+     *
+     * @return \yii\web\Response
+     */
+    protected function redirectAfterLogin()
+    {
+        $indexUrl = Yii::$app->urlManager->createUrl(['site/index']);
+        $sessionData = Yii::$app->session->get('ldapUserData', []);
+        $dn = (string)($sessionData['distinguishedname'] ?? '');
+
+        if (stripos($dn, 'OU=rpp-register') !== false) {
+            return $this->redirect(['site/index']);
+        }
+
+        return $this->goBack($indexUrl);
     }
 
     /**

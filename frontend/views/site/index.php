@@ -23,6 +23,11 @@ $canCreateAdUsers = $permissionManager->hasPermission(PermissionManager::PERMISS
 $canViewLdapUsers = $permissionManager->hasPermission(PermissionManager::PERMISSION_LDAP_USER_VIEW);
 $canViewOuRegister = $permissionManager->canViewOuRegister();
 
+/** @var string $currentUserOu */
+$currentUserOu = $currentUserOu ?? '';
+$isPendingApproval = ($currentUserOu === 'rpp-register');
+$canUseHospitalServices = !Yii::$app->user->isGuest && !$isPendingApproval;
+
 // Helper function to get the most specific OU name
 function getLastOuName($ouString) {
     if (empty($ouString)) return '';
@@ -210,10 +215,10 @@ $this->registerCssFile('@web/css/site-index.css');
             </div>
         </div>
 
-        <!-- Hospital Systems Section - Only show for logged in users (เมนูจาก DB) -->
-        <?php if (!Yii::$app->user->isGuest): ?>
+        <!-- Hospital Systems Section - เปิดเฉพาะผู้ใช้ที่ได้รับอนุมัติแล้ว (ไม่รวม rpp-register) -->
+        <?php if ($canUseHospitalServices): ?>
         <?php $serviceMenuItems = isset($serviceMenuItems) ? $serviceMenuItems : []; ?>
-        <div class="modern-services-section">
+        <div class="modern-services-section" id="hospitalServicesSection">
             <div class="section-header">
                 <h2 class="section-title">
                     <i class="fas fa-sitemap"></i> ระบบงานที่เกี่ยวข้องในโรงพยาบาล
@@ -282,6 +287,33 @@ $this->registerCssFile('@web/css/site-index.css');
                 <?php endif; ?>
             </div>
         </div>
+        <?php elseif ($isPendingApproval): ?>
+        <div class="modern-services-section services-section-locked" id="hospitalServicesLocked">
+            <div class="section-header">
+                <h2 class="section-title section-title-muted">
+                    <i class="fas fa-sitemap"></i> ระบบงานที่เกี่ยวข้องในโรงพยาบาล
+                </h2>
+                <p class="section-subtitle">เข้าถึงระบบต่างๆ ของโรงพยาบาลได้ที่นี่..</p>
+            </div>
+            <div class="services-locked-panel" role="status">
+                <div class="services-locked-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h3 class="services-locked-title">ยังไม่เปิดให้ใช้งาน</h3>
+                <p class="services-locked-text mb-0">
+                    สถานะของคุณคือ <strong>ลงทะเบียนเรียบร้อยแล้ว</strong>
+                    กรุณารอผู้ดูแลระบบอนุมัติก่อนจึงจะเข้าถึงระบบงานในโรงพยาบาลได้
+                </p>
+                <button type="button"
+                        class="btn btn-warning btn-sm mt-3"
+                        id="showPendingApprovalFromServices"
+                        data-bs-toggle="modal"
+                        data-bs-target="#pendingApprovalModal"
+                        aria-controls="pendingApprovalModal">
+                    <i class="fas fa-info-circle me-1"></i> ดูรายละเอียดสถานะ
+                </button>
+            </div>
+        </div>
         <?php endif; ?>
 
 
@@ -343,6 +375,7 @@ $(document).ready(function() {
             filterServiceCards();
         });
     })();
+
     
     // Periodically check if current user's OU has changed to activate access
     var refreshTimer = null;
@@ -405,10 +438,22 @@ $(document).ready(function() {
             ouDisplay.html('<strong>กลุ่มผู้ใช้งานระบบ:</strong> ' + lastOuName);
         }
 
-        if (currentUserOu === 'rpp-register' && typeof window.showPendingApprovalModal === 'function') {
-            window.showPendingApprovalModal();
-        } else if (typeof window.hidePendingApprovalModal === 'function') {
-            window.hidePendingApprovalModal();
+        var noticeHtml = '<div class="alert alert-warning pending-approval-page-notice mb-0" id="pending-approval-notice" role="status">' +
+            '<div class="d-flex align-items-start gap-2">' +
+            '<i class="fas fa-clock mt-1"></i>' +
+            '<div><strong class="d-block mb-1">รอการอนุมัติการใช้งาน</strong>' +
+            '<span>สถานะของคุณคือ <strong>ลงทะเบียนเรียบร้อยแล้ว</strong> กรุณารอผู้ดูแลระบบอนุมัติก่อนจึงจะใช้งานระบบได้เต็มรูปแบบ</span>' +
+            '</div></div></div>';
+
+        if (currentUserOu === 'rpp-register') {
+            if ($('#pending-approval-notice').length === 0) {
+                $('.card.card-outline .card-body').first().prepend(noticeHtml);
+            }
+        } else {
+            $('#pending-approval-notice').remove();
+            if (typeof window.hidePendingApprovalModal === 'function') {
+                window.hidePendingApprovalModal();
+            }
         }
     }
 

@@ -52,7 +52,37 @@ if (!Yii::$app->user->isGuest) {
 }
 
 $autoShowPendingApprovalModal = false;
+$pendingUserDisplayName = '';
+$pendingUserUsername = '';
+$pendingUserDepartment = '';
+$pendingUserRegisteredAt = 'ยังไม่ระบุ';
 if (!Yii::$app->user->isGuest && $currentUserOu === 'rpp-register') {
+    $ldapUserData = Yii::$app->session->get('ldapUserData', []);
+    $currentUser = Yii::$app->user->identity;
+    $pendingUserUsername = $currentUser->username ?? ($ldapUserData['samaccountname'] ?? '');
+    $pendingUserDisplayName = $currentUser->displayName ?? ($ldapUserData['displayname'] ?? ($ldapUserData['cn'] ?? ''));
+    $pendingUserDepartment = $currentUser->department ?? ($ldapUserData['department'] ?? '');
+    $whenCreatedRaw = $ldapUserData['whencreated'] ?? '';
+    if ($whenCreatedRaw === '' && $pendingUserUsername !== '') {
+        try {
+            $ldap = new LdapHelper();
+            $lookupKey = $ldapUserData['cn'] ?? $pendingUserUsername;
+            $ldapUser = $ldap->getUser($lookupKey);
+            if (!empty($ldapUser['whencreated'])) {
+                $whenCreatedRaw = is_array($ldapUser['whencreated'])
+                    ? ($ldapUser['whencreated'][0] ?? '')
+                    : $ldapUser['whencreated'];
+            }
+        } catch (\Throwable $e) {
+            // ใช้ค่า fallback จาก session เท่านั้น
+        }
+    }
+    $pendingUserRegisteredAt = LdapHelper::formatAdDateTimeThai($whenCreatedRaw);
+    $pendingUserUsername = Html::encode($pendingUserUsername);
+    $pendingUserDisplayName = Html::encode($pendingUserDisplayName);
+    $pendingUserDepartment = Html::encode($pendingUserDepartment);
+    $pendingUserRegisteredAt = Html::encode($pendingUserRegisteredAt);
+
     if (Yii::$app->session->get('showPendingApprovalModal')) {
         Yii::$app->session->remove('showPendingApprovalModal');
         $autoShowPendingApprovalModal = true;
@@ -142,6 +172,74 @@ if (!Yii::$app->user->isGuest && $currentUserOu === 'rpp-register') {
 
         #pendingApprovalModal .modal-body strong {
             color: #856404;
+        }
+
+        .pending-approval-details {
+            margin-top: 1rem;
+            padding: 0.875rem 1rem;
+            border-radius: 0.5rem;
+            background: rgba(255, 243, 205, 0.55);
+            border: 1px solid rgba(255, 193, 7, 0.45);
+        }
+
+        .pending-approval-details-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #856404;
+            margin-bottom: 0.75rem;
+        }
+
+        .pending-approval-detail-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.45rem 0;
+            border-bottom: 1px dashed rgba(133, 100, 4, 0.2);
+        }
+
+        .pending-approval-detail-row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .pending-approval-detail-label {
+            flex: 0 0 8.5rem;
+            font-size: 0.875rem;
+            color: #6c5700;
+        }
+
+        .pending-approval-detail-label i {
+            width: 1rem;
+            margin-right: 0.35rem;
+            color: #b8860b;
+        }
+
+        .pending-approval-detail-value {
+            flex: 1;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #4a3b00;
+            word-break: break-word;
+        }
+
+        #pendingApprovalModal .modal-footer.pending-approval-modal-footer {
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            background: #fffdf5;
+            border-top: 1px solid rgba(255, 193, 7, 0.35);
+        }
+
+        .pending-approval-footer-note {
+            flex: 1 1 220px;
+            font-size: 0.875rem;
+            color: #6c5700;
+            line-height: 1.5;
+        }
+
+        .pending-approval-footer-note i {
+            color: #b8860b;
         }
         .content-header .breadcrumb {
             background: transparent;
@@ -544,8 +642,41 @@ if (!Yii::$app->user->isGuest && $currentUserOu === 'rpp-register') {
                     สถานะของคุณคือ <strong>ลงทะเบียนเรียบร้อยแล้ว</strong>
                     กรุณารอผู้ดูแลระบบอนุมัติก่อนจึงจะใช้งานระบบได้เต็มรูปแบบ
                 </p>
+                <div class="pending-approval-details">
+                    <div class="pending-approval-details-title">
+                        <i class="fas fa-id-card me-1"></i>รายละเอียดการลงทะเบียน
+                    </div>
+                    <div class="pending-approval-detail-row">
+                        <div class="pending-approval-detail-label">
+                            <i class="fas fa-user"></i>ชื่อ-นามสกุล
+                        </div>
+                        <div class="pending-approval-detail-value"><?= $pendingUserDisplayName !== '' ? $pendingUserDisplayName : 'ยังไม่ระบุ' ?></div>
+                    </div>
+                    <div class="pending-approval-detail-row">
+                        <div class="pending-approval-detail-label">
+                            <i class="fas fa-at"></i>Username
+                        </div>
+                        <div class="pending-approval-detail-value"><?= $pendingUserUsername !== '' ? $pendingUserUsername : 'ยังไม่ระบุ' ?></div>
+                    </div>
+                    <div class="pending-approval-detail-row">
+                        <div class="pending-approval-detail-label">
+                            <i class="fas fa-building"></i>แผนก
+                        </div>
+                        <div class="pending-approval-detail-value"><?= $pendingUserDepartment !== '' ? $pendingUserDepartment : 'ยังไม่ระบุ' ?></div>
+                    </div>
+                    <div class="pending-approval-detail-row">
+                        <div class="pending-approval-detail-label">
+                            <i class="fas fa-calendar-alt"></i>วันที่ลงทะเบียน
+                        </div>
+                        <div class="pending-approval-detail-value"><?= $pendingUserRegisteredAt ?></div>
+                    </div>
+                </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer pending-approval-modal-footer">
+                <p class="pending-approval-footer-note mb-0">
+                    <i class="fas fa-info-circle me-1"></i>
+                    ยังไม่ต้องดำเนินการอะไรจนกว่าจะได้รับการอนุมัติ
+                </p>
                 <button type="button" class="btn btn-warning" data-bs-dismiss="modal">
                     <i class="fas fa-check me-1"></i>รับทราบ
                 </button>
@@ -784,6 +915,10 @@ if (!Yii::$app->user->isGuest && $currentUserOu === 'rpp-register') {
     // Intercept button clicks on important actions
     document.addEventListener('click', function(e) {
         var target = e.target.closest('button, a.btn, input[type="submit"]');
+
+        if (target && target.id === 'showPendingApprovalFromServices') {
+            return;
+        }
         
         if (target && accountStatus.isDisabled) {
             e.preventDefault();
