@@ -464,6 +464,37 @@
     pointer-events: none;
 }
 
+.ou-user-pagination .page-item-block-jump .page-link {
+    min-width: 40px;
+    color: #0d6efd;
+    border-color: #b6d4fe;
+    background-color: #f0f7ff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.ou-user-pagination .page-item-block-jump .page-jump-symbol {
+    display: inline-block;
+    min-width: 0.75rem;
+    text-align: center;
+}
+
+.ou-user-pagination .page-item-block-jump:not(.disabled) .page-link:hover {
+    color: #fff;
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.ou-user-pagination .page-item-edge .page-link {
+    min-width: 34px;
+}
+
+.ou-user-pagination-hint {
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
 /* Card Styles */
 .card {
     border: none;

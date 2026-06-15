@@ -8,7 +8,11 @@ if (Yii::$app->user->isGuest) {
 }
 
 $this->title = 'Move User to OU';
-$this->params['breadcrumbs'][] = ['label' => 'All User', 'url' => ['ou-user']];
+/** @var array $ouUserListReturnRoute */
+/** @var string $ouUserListReturnUrl */
+$ouUserListReturnRoute = $ouUserListReturnRoute ?? ['ou-user'];
+$ouUserListReturnUrl = $ouUserListReturnUrl ?? '';
+$this->params['breadcrumbs'][] = ['label' => 'All User', 'url' => $ouUserListReturnRoute];
 $this->params['breadcrumbs'][] = ['label' => 'update user', 'url' => ['update', 'cn' => $user['cn'][0] ?? $user['cn']]];
 $this->params['breadcrumbs'][] = $this->title;
 ?>
@@ -49,7 +53,10 @@ $this->params['breadcrumbs'][] = $this->title;
                 </div>
             </div>
         </div>
-        <?= Html::beginForm(['ldapuser/move', 'cn' => $user['cn'][0] ?? $user['cn']], 'post', ['id' => 'move-form']) ?>
+        <?= Html::beginForm(['ldapuser/move', 'cn' => $user['cn'][0] ?? $user['cn'], 'returnUrl' => $ouUserListReturnUrl], 'post', ['id' => 'move-form']) ?>
+            <?php if ($ouUserListReturnUrl !== ''): ?>
+                <?= Html::hiddenInput('returnUrl', $ouUserListReturnUrl) ?>
+            <?php endif; ?>
             <div class="form-group">
                 <label for="organizationalUnit">
                     <i class="fas fa-sitemap me-2"></i>Select Target Organizational Unit
@@ -246,7 +253,7 @@ $this->params['breadcrumbs'][] = $this->title;
             </div>
             <div class="form-group">
                 <?= Html::submitButton('Move User', ['class' => 'btn btn-dark', 'id' => 'move-button']) ?>
-                <?= Html::a('Cancel', ['view', 'cn' => $user['cn'][0] ?? $user['cn']], ['class' => 'btn btn-default']) ?>
+                <?= Html::a('Cancel', $ouUserListReturnRoute, ['class' => 'btn btn-default']) ?>
             </div>
         <?= Html::endForm() ?>
     </div>

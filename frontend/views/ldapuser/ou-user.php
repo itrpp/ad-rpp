@@ -2,7 +2,6 @@
 use yii\helpers\Html;
 use yii\web\ForbiddenHttpException;
 use yii\widgets\ActiveForm;
-use yii\widgets\LinkPager;
 use common\models\User;
 use common\models\LdapUser;
 use yii\base\BaseObject;
@@ -110,6 +109,7 @@ $getUserAttr = function (array $user, $key) {
                     $filterHasGtw = Yii::$app->request->get('filter_gtw') === '1';
                     $filterHasEphis = Yii::$app->request->get('filter_ephis') === '1';
                     $filterMissingIntegration = Yii::$app->request->get('filter_missing') === '1';
+                    $ouUserListReturnUrl = $ouUserListReturnUrl ?? Yii::$app->request->url;
 
                     // Helper สำหรับทำ highlight คำค้นในผลลัพธ์
                     $highlightSearch = function ($text) use ($searchValue) {
@@ -265,7 +265,7 @@ $getUserAttr = function (array $user, $key) {
                                     <i class="fas fa-times"></i>
                                 </button>
                                 <small class="text-muted ms-1 d-none d-xl-inline">
-                                    กรองเฉพาะหน้านี้
+                                    กรองจากทุกหน้า
                                 </small>
                             </div>
                         </div>
@@ -441,8 +441,13 @@ $getUserAttr = function (array $user, $key) {
                                                         title="ดูข้อมูลผู้ใช้: <?= Html::encode($user['displayname'] ?: $user['samaccountname']) ?>">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <?php if ($canUpdateUsers): ?>
-                                                    <?= Html::a('<i class="fas fa-edit"></i>', ['update', 'cn' => $user['cn']], [
+                                                    <?php if ($canUpdateUsers):
+                                                        $updateLinkParams = ['update', 'cn' => $user['cn']];
+                                                        if (!empty($ouUserListReturnUrl)) {
+                                                            $updateLinkParams['returnUrl'] = $ouUserListReturnUrl;
+                                                        }
+                                                    ?>
+                                                    <?= Html::a('<i class="fas fa-edit"></i>', $updateLinkParams, [
                                                         'class' => 'btn btn-sm btn-primary ou-user-action-btn',
                                                         'title' => 'แก้ไขข้อมูลผู้ใช้: ' . Html::encode($user['displayname'] ?: $user['samaccountname']),
                                                         'data' => [
@@ -461,8 +466,13 @@ $getUserAttr = function (array $user, $key) {
                                                     ]) ?>
                                                     <?php endif; ?>
                                                     
-                                                    <?php if ($canMoveUsers): ?>
-                                                    <?= Html::a('<i class="fas fa-exchange-alt"></i>', ['move', 'cn' => $user['cn']], ['class' => 'btn btn-sm btn-warning ou-user-action-btn', 'title' => 'ย้ายผู้ใช้: ' . Html::encode($user['displayname'] ?: $user['samaccountname'])]) ?>
+                                                    <?php if ($canMoveUsers):
+                                                        $moveLinkParams = ['move', 'cn' => $user['cn']];
+                                                        if (!empty($ouUserListReturnUrl)) {
+                                                            $moveLinkParams['returnUrl'] = $ouUserListReturnUrl;
+                                                        }
+                                                    ?>
+                                                    <?= Html::a('<i class="fas fa-exchange-alt"></i>', $moveLinkParams, ['class' => 'btn btn-sm btn-warning ou-user-action-btn', 'title' => 'ย้ายผู้ใช้: ' . Html::encode($user['displayname'] ?: $user['samaccountname'])]) ?>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -486,15 +496,11 @@ $getUserAttr = function (array $user, $key) {
                                             แสดง <?= $rowOffset + 1 ?>–<?= min($rowOffset + $pagination->getPageSize(), $totalCount) ?> จาก <?= (int)$totalCount ?> คน
                                         <?php endif; ?>
                                     </div>
-                                    <div class="pagination-buttons" id="paginationButtons">
+                                    <div class="pagination-buttons d-flex flex-wrap align-items-center justify-content-end gap-1" id="paginationButtons">
                                         <?php if ($pagination && $pagination->getPageCount() > 1): ?>
-                                            <?= LinkPager::widget([
+                                            <?= $this->render('_ou_user_pagination', [
                                                 'pagination' => $pagination,
-                                                'options' => ['class' => 'pagination ou-user-pagination mb-0'],
-                                                'linkContainerOptions' => ['class' => 'page-item'],
-                                                'linkOptions' => ['class' => 'page-link'],
-                                                'disabledListItemSubTagOptions' => ['tag' => 'span', 'class' => 'page-link'],
-                                                'maxButtonCount' => 5,
+                                                'maxButtonCount' => 10,
                                             ]) ?>
                                         <?php endif; ?>
                                     </div>

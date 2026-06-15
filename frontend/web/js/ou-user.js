@@ -10,11 +10,46 @@ class OuUserManager {
         this.sortDir = 'asc';
         this.toggleStatusDebounce = new Map();
         this.integrationFilterStorageKey = 'ouUserIntegrationFilters';
+        this.listStateStorageKey = 'ouUserListReturnUrl';
         
         this.initializeElements();
         this.restoreIntegrationFilters();
         this.bindEvents();
+        this.saveListStateToStorage();
         this.initializePage();
+    }
+
+    saveListStateToStorage() {
+        const container = document.querySelector('.ou-users[data-server-pagination="1"]');
+        if (!container) {
+            return;
+        }
+        try {
+            sessionStorage.setItem(this.listStateStorageKey, window.location.pathname + window.location.search);
+        } catch (err) {
+            // ignore storage errors
+        }
+    }
+
+    appendReturnUrlToActionLink(link) {
+        if (!link || !link.getAttribute('href')) {
+            return;
+        }
+        try {
+            const href = link.getAttribute('href');
+            if (!/\/ldapuser(%2F|\/)update|\/ldapuser(%2F|\/)move/.test(href)) {
+                return;
+            }
+            const url = new URL(link.href, window.location.origin);
+            if (url.searchParams.has('returnUrl')) {
+                return;
+            }
+            const returnUrl = window.location.pathname + window.location.search;
+            url.searchParams.set('returnUrl', returnUrl);
+            link.setAttribute('href', url.pathname + url.search);
+        } catch (err) {
+            // ignore malformed URLs
+        }
     }
 
     initializeElements() {
@@ -154,6 +189,19 @@ class OuUserManager {
                 this.onIntegrationFilterChange();
             });
         }
+
+        document.addEventListener('click', (e) => {
+            const container = document.querySelector('.ou-users[data-server-pagination="1"]');
+            if (!container) {
+                return;
+            }
+            const link = e.target.closest('a.ou-user-action-btn');
+            if (!link) {
+                return;
+            }
+            this.saveListStateToStorage();
+            this.appendReturnUrlToActionLink(link);
+        }, true);
         
         // Filter input events
         this.filterInputs.forEach(el => {
@@ -207,9 +255,6 @@ class OuUserManager {
         const container = document.querySelector('.ou-users');
         const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
         if (serverPagination) {
-            if (this.hasActiveIntegrationFilters()) {
-                this.applySearchAndRender(1);
-            }
             return;
         }
         this.applySearchAndRender(1);
@@ -264,20 +309,63 @@ class OuUserManager {
                 return;
             }
             const data = JSON.parse(raw);
-            if (this.filterHasGtw) {
-                this.filterHasGtw.checked = !!data.gtw;
+            const hasActive = !!(data.gtw || data.ephis || data.missing);
+            if (!hasActive) {
+                return;
             }
-            if (this.filterHasEphis) {
-                this.filterHasEphis.checked = !!data.ephis;
+
+            url.searchParams.set('page', '1');
+            if (data.gtw) {
+                url.searchParams.set('filter_gtw', '1');
+            } else {
+                url.searchParams.delete('filter_gtw');
             }
-            if (this.filterHasNone) {
-                this.filterHasNone.checked = !!data.missing;
+            if (data.ephis) {
+                url.searchParams.set('filter_ephis', '1');
+            } else {
+                url.searchParams.delete('filter_ephis');
             }
-            this.syncIntegrationFilterHiddenInputs();
-            this.updateIntegrationFilterQuery();
-            this.updatePaginationLinkHrefs();
+            if (data.missing) {
+                url.searchParams.set('filter_missing', '1');
+            } else {
+                url.searchParams.delete('filter_missing');
+            }
+            window.location.replace(url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : ''));
         } catch (err) {
             // ignore storage errors
+        }
+    }
+
+    navigateWithIntegrationFilters(page = 1) {
+        const url = new URL(window.location.href);
+        const state = this.getIntegrationFilterState();
+
+        url.searchParams.set('page', String(page));
+        if (state.gtw) {
+            url.searchParams.set('filter_gtw', '1');
+        } else {
+            url.searchParams.delete('filter_gtw');
+        }
+        if (state.ephis) {
+            url.searchParams.set('filter_ephis', '1');
+        } else {
+            url.searchParams.delete('filter_ephis');
+        }
+        if (state.missing) {
+            url.searchParams.set('filter_missing', '1');
+        } else {
+            url.searchParams.delete('filter_missing');
+        }
+
+        window.location.href = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '');
+    }
+
+    getSavedListStateUrl() {
+        try {
+            const saved = sessionStorage.getItem(this.listStateStorageKey);
+            return saved || '';
+        } catch (err) {
+            return '';
         }
     }
 
@@ -357,6 +445,14 @@ class OuUserManager {
     onIntegrationFilterChange() {
         this.syncIntegrationFilterHiddenInputs();
         this.saveIntegrationFilters();
+
+        const container = document.querySelector('.ou-users');
+        const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
+        if (serverPagination) {
+            this.navigateWithIntegrationFilters(1);
+            return;
+        }
+
         this.updateIntegrationFilterQuery();
         this.updatePaginationLinkHrefs();
         this.applySearchAndRender(1);
@@ -410,6 +506,9 @@ class OuUserManager {
         const fTitle = norm(fTitleRaw);
         const fStatus = norm(fStatusRaw);
 
+        const container = document.querySelector('.ou-users');
+        const serverPagination = container && container.getAttribute('data-server-pagination') === '1';
+
         const allRows = Array.from(document.querySelectorAll('.user-row'));
         
         allRows.forEach(row => {
@@ -453,7 +552,7 @@ class OuUserManager {
             const gtwMatch = !filterGtw || hasGtw;
             const ephisMatch = !filterEphis || hasEphis;
             const missingMatch = !filterMissing || hasNone;
-            const integrationMatch = gtwMatch && ephisMatch && missingMatch;
+            const integrationMatch = serverPagination ? true : (gtwMatch && ephisMatch && missingMatch);
 
             row.dataset.matches = (globalMatch && colMatch && ouMatch && integrationMatch) ? '1' : '0';
         });

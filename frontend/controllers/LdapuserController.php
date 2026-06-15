@@ -303,7 +303,7 @@ class LdapuserController extends Controller
             }
         } elseif (!$this->hasPermission('update')) {
             Yii::$app->session->setFlash('error', 'คุณไม่มีสิทธิ์ในการแก้ไขข้อมูลผู้ใช้');
-            return $this->redirect(['ou-user']);
+            return $this->redirectToOuUserList();
         }
 
         $model = new LdapUser();
@@ -317,7 +317,7 @@ class LdapuserController extends Controller
                 return $this->asJson(['success' => false, 'message' => 'User not found']);
             }
             Yii::$app->session->setFlash('error', 'User not found');
-            return $this->redirect(['ou-user']);
+            return $this->redirectToOuUserList();
         }
 
         if ($canEditGtwOnly) {
@@ -591,7 +591,7 @@ class LdapuserController extends Controller
                         return $this->asJson(['success' => true, 'message' => 'No changes were made.']);
                     }
                     Yii::$app->session->setFlash('info', 'No changes were made to the user.');
-                    return $this->redirect(['ou-user']);
+                    return $this->redirectToOuUserList();
                 }
             } catch (\Exception $e) {
                 Yii::error("Exception while updating user: " . $e->getMessage());
@@ -603,11 +603,11 @@ class LdapuserController extends Controller
             }
         }
 
-        return $this->render('update', [
+        return $this->render('update', array_merge([
             'model' => $model,
             'readOnly' => $readOnly,
             'canEditGtwOnly' => $canEditGtwOnly,
-        ]);
+        ], $this->getOuUserListReturnViewParams()));
     }
 
     public function actionDelete($cn)
@@ -688,7 +688,7 @@ class LdapuserController extends Controller
 
         if (!$user) {
             Yii::$app->session->setFlash('error', "User not found: $cn");
-            return $this->redirect(['ou-user']);
+            return $this->redirectToOuUserList();
         }
 
         // Get all available OUs from the entire domain
@@ -735,17 +735,17 @@ class LdapuserController extends Controller
                 // Validate that a target OU was selected
                 if (empty($model->organizationalUnit)) {
                     Yii::$app->session->setFlash('error', 'กรุณาเลือก Organizational Unit ที่ต้องการย้าย');
-                    return $this->render('move', [
+                    return $this->render('move', array_merge([
                         'model' => $model,
                         'user' => $user,
                         'subOus' => $subOus,
-                    ]);
+                    ], $this->getOuUserListReturnViewParams()));
                 }
                 
                 // Use LdapHelper's moveUser method
                 if ($ldap->moveUser($cn, $model->organizationalUnit)) {
                     Yii::$app->session->setFlash('success', "ผู้ใช้ $cn ถูกย้ายเรียบร้อยแล้ว");
-                    return $this->redirect(['ou-user']);
+                    return $this->redirectToOuUserList();
                 } else {
                     $error = ldap_error($ldap->getConnection());
                     Yii::$app->session->setFlash('error', "ไม่สามารถย้ายผู้ใช้ได้: $error");
@@ -756,11 +756,11 @@ class LdapuserController extends Controller
             }
         }
 
-        return $this->render('move', [
+        return $this->render('move', array_merge([
             'model' => $model,
             'user' => $user,
             'subOus' => $subOus,
-        ]);
+        ], $this->getOuUserListReturnViewParams()));
     }
 
     /**
@@ -906,7 +906,7 @@ class LdapuserController extends Controller
         }
         
         // For non-AJAX requests, redirect back to the same page (ou-user)
-        return $this->redirect(['ou-user']);
+        return $this->redirectToOuUserList();
     }
 
     /**
@@ -1014,6 +1014,114 @@ class LdapuserController extends Controller
             }
         }
         return '';
+    }
+
+    /**
+     * แปลง returnUrl จากหน้า ou-user เป็น route ที่ปลอดภัยสำหรับ redirect
+     */
+    protected function buildOuUserListReturnRoute(): ?array
+    {
+        $returnUrl = Yii::$app->request->get('returnUrl');
+        if (!is_string($returnUrl) || trim($returnUrl) === '') {
+            $returnUrl = Yii::$app->request->post('returnUrl');
+        }
+        if (!is_string($returnUrl) || trim($returnUrl) === '') {
+            return null;
+        }
+
+        $returnUrl = urldecode(trim($returnUrl));
+        $query = parse_url($returnUrl, PHP_URL_QUERY);
+        if (!is_string($query) || $query === '') {
+            if (strpos($returnUrl, '=') !== false) {
+                $query = ltrim($returnUrl, '?');
+            } else {
+                return null;
+            }
+        }
+
+        parse_str($query, $params);
+        if (($params['r'] ?? '') !== 'ldapuser/ou-user') {
+            return null;
+        }
+
+        unset($params['r']);
+        $allowed = ['page', 'per-page', 'search', 'ou', 'filter_gtw', 'filter_ephis', 'filter_missing'];
+        $safeParams = [];
+        foreach ($allowed as $key) {
+            if (!array_key_exists($key, $params)) {
+                continue;
+            }
+            $value = $params[$key];
+            if ($value === '' || $value === null) {
+                continue;
+            }
+            $safeParams[$key] = $value;
+        }
+
+        return array_merge(['ou-user'], $safeParams);
+    }
+
+    /**
+     * กลับไปหน้ารายการ ou-user ตาม returnUrl หากมี
+     */
+    protected function redirectToOuUserList()
+    {
+        $route = $this->buildOuUserListReturnRoute();
+        if ($route !== null) {
+            return $this->redirect($route);
+        }
+
+        return $this->redirect(['ou-user']);
+    }
+
+    /**
+     * URL ปัจจุบันของหน้ารายการ ou-user สำหรับส่งต่อเป็น returnUrl
+     */
+    protected function getOuUserListReturnUrlParam(): string
+    {
+        $existing = Yii::$app->request->get('returnUrl');
+        if (is_string($existing) && trim($existing) !== '') {
+            return trim($existing);
+        }
+
+        if (Yii::$app->controller->id === 'ldapuser' && Yii::$app->controller->action->id === 'ou-user') {
+            return Yii::$app->request->url;
+        }
+
+        return '';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function getOuUserListReturnViewParams(): array
+    {
+        return [
+            'ouUserListReturnRoute' => $this->buildOuUserListReturnRoute() ?: ['ou-user'],
+            'ouUserListReturnUrl' => $this->getOuUserListReturnUrlParam(),
+        ];
+    }
+
+    /**
+     * ตรวจว่าผู้ใช้ตรงกับตัวกรอง GTW / e-phis / ยังไม่มี หรือไม่
+     */
+    private function userMatchesIntegrationFilters(array $user, bool $filterGtw, bool $filterEphis, bool $filterMissing): bool
+    {
+        if (!$filterGtw && !$filterEphis && !$filterMissing) {
+            return true;
+        }
+
+        $gtwCode = LdapUser::normalizeGtwCode($this->getLdapAttr($user, 'countrycode'));
+        $ephisCode = trim($this->getLdapAttr($user, 'physicaldeliveryofficename'));
+        $hasGtw = $gtwCode !== '' && preg_match('/^\d+$/', $gtwCode) === 1;
+        $hasEphis = $ephisCode !== '' && preg_match('/^\d+$/', $ephisCode) === 1;
+        $hasNone = !$hasGtw && !$hasEphis;
+
+        $gtwMatch = !$filterGtw || $hasGtw;
+        $ephisMatch = !$filterEphis || $hasEphis;
+        $missingMatch = !$filterMissing || $hasNone;
+
+        return $gtwMatch && $ephisMatch && $missingMatch;
     }
 
     /**
@@ -1193,6 +1301,9 @@ class LdapuserController extends Controller
         }
 
         $search = trim((string) Yii::$app->request->get('search', ''));
+        $filterHasGtw = Yii::$app->request->get('filter_gtw') === '1';
+        $filterHasEphis = Yii::$app->request->get('filter_ephis') === '1';
+        $filterMissingIntegration = Yii::$app->request->get('filter_missing') === '1';
         $finalUsers = $this->buildFinalUsersList($allDomainUsers, $ouUsers, $search === '' ? null : $search);
 
         // Optional OU path filter (hierarchical text from dropdown)
@@ -1232,50 +1343,19 @@ class LdapuserController extends Controller
             }
         }
 
-        // Optional OU path filter (hierarchical text from dropdown)
-        $ouPathFilter = trim((string) Yii::$app->request->get('ou', ''));
-        if ($ouPathFilter !== '') {
-            $normFilter = mb_strtolower(preg_replace('/\s+/u', ' ', $ouPathFilter));
-            if ($normFilter !== '') {
-                $finalUsers = array_filter($finalUsers, function ($entry) use ($normFilter) {
-                    if (!is_array($entry) || !isset($entry['user'])) {
-                        return false;
-                    }
-                    /** @var array $user */
-                    $user = $entry['user'];
-                    $dn = $this->getLdapAttr($user, 'distinguishedname');
-                    if ($dn === '') {
-                        return false;
-                    }
-                    $dnParts = array_map('trim', explode(',', $dn));
-                    $ouPath = [];
-                    foreach ($dnParts as $part) {
-                        if (stripos($part, 'OU=') === 0) {
-                            $ouName = substr($part, 3);
-                            if ($ouName !== '') {
-                                $ouPath[] = $ouName;
-                            }
-                        }
-                    }
-                    if (empty($ouPath)) {
-                        return false;
-                    }
-                    $ouPathReversed = array_reverse($ouPath);
-                    $pathStr = implode(' / ', $ouPathReversed);
-                    $normPath = mb_strtolower(preg_replace('/\s+/u', ' ', $pathStr));
-                    return $normPath === $normFilter || mb_strpos($normPath, $normFilter) !== false;
-                });
-                $finalUsers = array_values($finalUsers);
-            }
+        if ($filterHasGtw || $filterHasEphis || $filterMissingIntegration) {
+            $finalUsers = array_values(array_filter($finalUsers, function ($entry) use ($filterHasGtw, $filterHasEphis, $filterMissingIntegration) {
+                if (!is_array($entry) || !isset($entry['user']) || !is_array($entry['user'])) {
+                    return false;
+                }
+                return $this->userMatchesIntegrationFilters($entry['user'], $filterHasGtw, $filterHasEphis, $filterMissingIntegration);
+            }));
         }
 
         $pageSize = (int) Yii::$app->request->get('per-page', 20);
         $pageSize = $pageSize >= 5 && $pageSize <= 100 ? $pageSize : 20;
 
-        $paginationParams = array_merge(
-            Yii::$app->request->getQueryParams(),
-            array_filter(['search' => $search])
-        );
+        $paginationParams = Yii::$app->request->getQueryParams();
         $pagination = new Pagination([
             'totalCount' => count($finalUsers),
             'pageSize' => $pageSize,
@@ -1308,7 +1388,8 @@ class LdapuserController extends Controller
             'dataProvider' => $dataProvider,
             'search' => $search,
             'currentUser' => $this->getCurrentUserLdapData(),
-            'isAdmin' => $this->hasPermission('ou-user')
+            'isAdmin' => $this->hasPermission('ou-user'),
+            'ouUserListReturnUrl' => Yii::$app->request->url,
         ]);
     }
     public function actionOuRegister()

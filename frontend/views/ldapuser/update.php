@@ -8,6 +8,8 @@ use common\components\PermissionManager;
 /** @var common\models\LdapUser $model */
 /** @var bool $readOnly */
 /** @var bool|null $canEditGtwOnly */
+/** @var array $ouUserListReturnRoute */
+/** @var string $ouUserListReturnUrl */
 $pm = new PermissionManager();
 $isSuperUserOnly = $pm->isSuperUserOnly();
 $isAdmin = $pm->isLdapAdmin();
@@ -21,7 +23,8 @@ $this->title = $canEditGtwOnly
 if ($canEditGtwOnly || $readOnly) {
     $this->params['breadcrumbs'][] = ['label' => 'ผู้ลงทะเบียนรออนุมัติ', 'url' => ['ou-register']];
 } else {
-    $this->params['breadcrumbs'][] = ['label' => 'All User', 'url' => ['ou-user']];
+    $ouUserListReturnRoute = $ouUserListReturnRoute ?? ['ou-user'];
+    $this->params['breadcrumbs'][] = ['label' => 'All User', 'url' => $ouUserListReturnRoute];
 }
 $this->params['breadcrumbs'][] = $model->cn;
 
@@ -41,7 +44,8 @@ $this->params['pageSubtitle'] = [
 $roInput = ['readonly' => true, 'disabled' => true, 'class' => 'form-control bg-light'];
 $roSelect = ['disabled' => true, 'class' => 'form-control bg-light'];
 $countryEditable = $isAdmin || $canEditGtwOnly;
-$backUrl = ($readOnly || $canEditGtwOnly) ? ['ou-register'] : ['ou-user'];
+$backUrl = ($readOnly || $canEditGtwOnly) ? ['ou-register'] : ($ouUserListReturnRoute ?? ['ou-user']);
+$ouUserListReturnUrl = $ouUserListReturnUrl ?? '';
 $canViewOuRegister = $pm->canViewOuRegister();
 $canViewAllUsers = $isAdmin || $pm->isSuperUser();
 $gtwOriginalValue = \common\models\LdapUser::normalizeGtwCode($model->country ?? '');
@@ -241,7 +245,7 @@ if (Yii::$app->session->hasFlash('success')) {
                                 ]) ?>
                             <?php endif; ?>
                             <?php if ($canViewAllUsers): ?>
-                                <?= Html::a('<i class="fas fa-sitemap me-1"></i>All User', ['ou-user'], [
+                                <?= Html::a('<i class="fas fa-sitemap me-1"></i>All User', $ouUserListReturnRoute ?? ['ou-user'], [
                                     'class' => 'btn btn-outline-primary btn-sm',
                                     'title' => 'กลับไปหน้ารายการผู้ใช้ทั้งหมด',
                                 ]) ?>
@@ -249,7 +253,13 @@ if (Yii::$app->session->hasFlash('success')) {
                         </div>
                         <?php if (!$canEditGtwOnly && !$readOnly): ?>
                         <div class="d-flex flex-wrap gap-2 ms-auto">
-                            <?= Html::a('<i class="fas fa-exchange-alt me-1"></i> Move OU', ['move', 'cn' => $model->cn], [
+                            <?php
+                            $moveFromUpdateParams = ['move', 'cn' => $model->cn];
+                            if ($ouUserListReturnUrl !== '') {
+                                $moveFromUpdateParams['returnUrl'] = $ouUserListReturnUrl;
+                            }
+                            ?>
+                            <?= Html::a('<i class="fas fa-exchange-alt me-1"></i> Move OU', $moveFromUpdateParams, [
                                 'class' => 'btn btn-warning btn-sm',
                                 'title' => 'Move user to another OU',
                             ]) ?>
