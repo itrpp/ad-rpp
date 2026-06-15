@@ -79,7 +79,7 @@ class LdapUser extends Model
         return [
             [['cn', 'mail', 'password'], 'required', 'on' => 'create'],
             [['sAMAccountName', 'displayName', 'department', 'title'], 'required', 'on' => 'update'],
-            [['sAMAccountName', 'displayName', 'department', 'title', 'mail', 'telephoneNumber', 'personalTitle'], 'string'],
+            [['sAMAccountName', 'displayName', 'department', 'title', 'mail', 'telephoneNumber', 'personalTitle', 'postalCode'], 'string'],
             ['mail', 'email', 'skipOnEmpty' => true],
             ['password', 'string', 'min' => 6, 'skipOnEmpty' => true],
             ['organizationalUnit', 'string'],
@@ -95,6 +95,9 @@ class LdapUser extends Model
             // ถ้ากรอกต้องเป็นตัวเลข 1-6 หลัก
             ['country', 'match', 'pattern' => '/^\d{1,6}$/', 'on' => ['update', 'gtwUpdate'], 'skipOnEmpty' => true, 'message' => 'เลขรหัสผู้ใช้งาน GTW ต้องเป็นตัวเลขไม่เกิน 6 หลัก'],
             ['country', 'string', 'max' => 6, 'on' => ['update', 'gtwUpdate'], 'skipOnEmpty' => true],
+            ['postalCode', 'trim'],
+            ['postalCode', 'match', 'pattern' => '/^\d{13}$/', 'on' => ['update'], 'skipOnEmpty' => true, 'message' => 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก'],
+            ['postalCode', 'validateThaiIdCard', 'on' => ['update'], 'skipOnEmpty' => true],
         ];
     }
 
@@ -117,7 +120,32 @@ class LdapUser extends Model
             'telephoneNumber' => 'Telephone Number',
             'personalTitle' => 'คำนำหน้าชื่อ',
             'country' => 'เลขรหัสผู้ใช้งาน GTW',
+            'postalCode' => 'เลขบัตรประชาชน',
         ];
+    }
+
+    /**
+     * ตรวจ checksum เลขบัตรประชาชนไทย
+     */
+    public function validateThaiIdCard($attribute): void
+    {
+        $value = preg_replace('/\D/', '', (string)($this->$attribute ?? ''));
+        if ($value === '') {
+            return;
+        }
+        if (!preg_match('/^\d{13}$/', $value)) {
+            $this->addError($attribute, 'เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก');
+            return;
+        }
+
+        $sum = 0;
+        for ($i = 0; $i < 12; $i++) {
+            $sum += (int)$value[$i] * (13 - $i);
+        }
+        $checkDigit = (11 - ($sum % 11)) % 10;
+        if ((int)$value[12] !== $checkDigit) {
+            $this->addError($attribute, 'เลขบัตรประชาชนไม่ถูกต้องตามรูปแบบไทย');
+        }
     }
 
     /**
@@ -151,6 +179,9 @@ class LdapUser extends Model
         }
         if ($this->country !== null) {
             $this->country = self::normalizeGtwCode($this->country);
+        }
+        if ($this->postalCode !== null && $this->postalCode !== '') {
+            $this->postalCode = preg_replace('/\D/', '', (string)$this->postalCode);
         }
         return true;
     }
@@ -256,7 +287,8 @@ class LdapUser extends Model
             'title' => 'title',
             'mail' => 'mail',
             'telephoneNumber' => 'telephoneNumber',
-            'physicalDeliveryOfficeName' => 'physicalDeliveryOfficeName'
+            'physicalDeliveryOfficeName' => 'physicalDeliveryOfficeName',
+            'postalCode' => 'postalCode',
         ];
 
         // Only update fields that have changed

@@ -64,6 +64,7 @@ class OuUserManager {
         this.filterHasEphis = document.getElementById('filterHasEphis');
         this.filterHasNone = document.getElementById('filterHasNone');
         this.clearIntegrationFilter = document.getElementById('clearIntegrationFilter');
+        this.refreshIntegrationFilter = document.getElementById('refreshIntegrationFilter');
         this.filterGtwHidden = document.getElementById('filterGtwHidden');
         this.filterEphisHidden = document.getElementById('filterEphisHidden');
         this.filterMissingHidden = document.getElementById('filterMissingHidden');
@@ -175,6 +176,12 @@ class OuUserManager {
             }
         });
 
+        if (this.refreshIntegrationFilter) {
+            this.refreshIntegrationFilter.addEventListener('click', () => {
+                window.location.reload();
+            });
+        }
+
         if (this.clearIntegrationFilter) {
             this.clearIntegrationFilter.addEventListener('click', () => {
                 if (this.filterHasGtw) {
@@ -185,6 +192,11 @@ class OuUserManager {
                 }
                 if (this.filterHasNone) {
                     this.filterHasNone.checked = false;
+                }
+                try {
+                    sessionStorage.removeItem(this.integrationFilterStorageKey);
+                } catch (err) {
+                    // ignore storage errors
                 }
                 this.onIntegrationFilterChange();
             });
@@ -228,6 +240,16 @@ class OuUserManager {
                 }
             });
         }
+
+        document.addEventListener('click', (e) => {
+            const copyBtn = e.target.closest('.col-cn-id-card-copy');
+            if (!copyBtn) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            this.copyIdCardToClipboard(copyBtn);
+        });
 
         // Toggle status events - handle both button clicks and switch toggles
         document.addEventListener('click', (e) => {
@@ -366,6 +388,53 @@ class OuUserManager {
             return saved || '';
         } catch (err) {
             return '';
+        }
+    }
+
+    copyIdCardToClipboard(button) {
+        const text = (button.getAttribute('data-copy-text') || '').trim();
+        if (!text) {
+            return;
+        }
+
+        const showCopied = () => {
+            button.classList.add('copied');
+            const icon = button.querySelector('i');
+            const originalClass = icon ? icon.className : '';
+            if (icon) {
+                icon.className = 'fas fa-check';
+            }
+            button.setAttribute('title', 'คัดลอกแล้ว');
+            window.setTimeout(() => {
+                button.classList.remove('copied');
+                if (icon) {
+                    icon.className = originalClass || 'fas fa-copy';
+                }
+                button.setAttribute('title', 'คัดลอกเลขบัตรประชาชน');
+            }, 1500);
+        };
+
+        const fallbackCopy = () => {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showCopied();
+            } catch (err) {
+                // ignore
+            }
+            document.body.removeChild(textarea);
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(showCopied).catch(fallbackCopy);
+        } else {
+            fallbackCopy();
         }
     }
 

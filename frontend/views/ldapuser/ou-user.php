@@ -261,8 +261,19 @@ $getUserAttr = function (array $user, $key) {
                                         <span class="badge user-badge-none">ยังไม่มี</span>
                                     </label>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" id="clearIntegrationFilter" title="ล้างตัวกรองรหัส" aria-label="ล้างตัวกรองรหัส">
-                                    <i class="fas fa-times"></i>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary integration-filter-action-btn"
+                                        id="refreshIntegrationFilter"
+                                        title="รีเฟรชข้อมูลตามตัวกรองปัจจุบัน"
+                                        aria-label="รีเฟรช">
+                                    <i class="fas fa-sync-alt me-1"></i>รีเฟรช
+                                </button>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary integration-filter-action-btn"
+                                        id="clearIntegrationFilter"
+                                        title="ล้างตัวกรอง GTW / e-phis / ยังไม่มี"
+                                        aria-label="ล้างตัวกรอง">
+                                    <i class="fas fa-eraser me-1"></i>ล้างตัวกรอง
                                 </button>
                                 <small class="text-muted ms-1 d-none d-xl-inline">
                                     กรองจากทุกหน้า
@@ -364,7 +375,16 @@ $getUserAttr = function (array $user, $key) {
                                             <td class="col-cn" title="<?= Html::encode($cnTitle) ?>">
                                                 <span class="col-cn-name"><?= $highlightSearch($cnText) ?></span>
                                                 <?php if ($idCardText !== ''): ?>
-                                                    <span class="col-cn-id-card"><?= $highlightSearch($idCardText) ?></span>
+                                                    <span class="col-cn-id-card-wrap">
+                                                        <span class="col-cn-id-card"><?= $highlightSearch($idCardText) ?></span>
+                                                        <button type="button"
+                                                                class="btn btn-link col-cn-id-card-copy p-0"
+                                                                data-copy-text="<?= Html::encode($idCardText) ?>"
+                                                                title="คัดลอกเลขบัตรประชาชน"
+                                                                aria-label="คัดลอกเลขบัตรประชาชน">
+                                                            <i class="fas fa-copy"></i>
+                                                        </button>
+                                                    </span>
                                                 <?php endif; ?>
                                             </td>
                                             <td><?= $highlightSearch($getUserAttr($user, 'department')) ?></td>

@@ -1743,6 +1743,14 @@ class LdapHelper
      */
     public function isIdCardRegistered(string $idCard): bool
     {
+        return $this->isIdCardRegisteredByOtherUser($idCard, '');
+    }
+
+    /**
+     * ตรวจเลขบัตรซ้ำ โดยยกเว้นผู้ใช้ที่กำลังแก้ไข (cn หรือ sAMAccountName)
+     */
+    public function isIdCardRegisteredByOtherUser(string $idCard, string $excludePrincipal = ''): bool
+    {
         $idCard = trim($idCard);
         if ($idCard === '' || !preg_match('/^[0-9]{13}$/', $idCard)) {
             return false;
@@ -1750,17 +1758,27 @@ class LdapHelper
 
         $escaped = self::escapeLdapFilterValue($idCard);
         $filter = '(postalCode=' . $escaped . ')';
+        $excludePrincipal = mb_strtolower(trim($excludePrincipal));
 
         foreach ($this->getUserSearchBaseDns() as $baseDn) {
             if (empty($baseDn)) {
                 continue;
             }
-            $search = @ldap_search($this->ldapConn, $baseDn, $filter, ['postalCode', 'sAMAccountName']);
+            $search = @ldap_search($this->ldapConn, $baseDn, $filter, ['postalCode', 'sAMAccountName', 'cn']);
             if (!$search) {
                 continue;
             }
             $entries = ldap_get_entries($this->ldapConn, $search);
-            if ($entries && isset($entries['count']) && $entries['count'] > 0) {
+            if (!$entries || !isset($entries['count']) || $entries['count'] <= 0) {
+                continue;
+            }
+
+            for ($i = 0; $i < $entries['count']; $i++) {
+                $sam = mb_strtolower(trim((string)($entries[$i]['samaccountname'][0] ?? '')));
+                $cn = mb_strtolower(trim((string)($entries[$i]['cn'][0] ?? '')));
+                if ($excludePrincipal !== '' && ($sam === $excludePrincipal || $cn === $excludePrincipal)) {
+                    continue;
+                }
                 return true;
             }
         }

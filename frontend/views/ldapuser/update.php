@@ -472,6 +472,18 @@ if (Yii::$app->session->hasFlash('success')) {
                                         ->label('ตำแหน่ง <span class="text-danger">*</span>') ?>
                                 </div>
                                 <div class="col-md-6">
+                                    <?= $form->field($model, 'postalCode', ['options' => ['class' => 'mb-3 field-ldapuser-postalcode']])
+                                        ->textInput(array_merge([
+                                            'maxlength' => 13,
+                                            'inputmode' => 'numeric',
+                                            'pattern' => '[0-9]{13}',
+                                            'placeholder' => 'เลขบัตรประชาชน 13 หลัก',
+                                            'id' => 'ldapuser-postalcode',
+                                            'autocomplete' => 'off',
+                                        ], $isAdmin ? [] : $roInput))
+                                        ->label('เลขบัตรประชาชน') ?>
+                                </div>
+                                <div class="col-md-6">
                                     <?= $form->field($model, 'physicalDeliveryOfficeName')
                                         ->textInput(array_merge(['maxlength' => true, 'placeholder' => 'เลขระบบ E-phis (ถ้ามี)'], $isAdmin ? [] : $roInput))
                                         ->label('เลขระบบ E-phis (ถ้ามี) ') ?>
@@ -1026,6 +1038,18 @@ function validateGtwForm() {
     return true;
 }
 
+function validateThaiIdCard(idCard) {
+    if (!idCard || idCard.length !== 13 || !/^\d{13}$/.test(idCard)) {
+        return false;
+    }
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+        sum += parseInt(idCard.charAt(i), 10) * (13 - i);
+    }
+    const checkDigit = (11 - (sum % 11)) % 10;
+    return parseInt(idCard.charAt(12), 10) === checkDigit;
+}
+
 // Validation function to check for empty fields
 function validateForm() {
     const requiredFields = [
@@ -1071,6 +1095,24 @@ function validateForm() {
             gtwField.focus();
             gtwField.select();
             return false;
+        }
+    }
+
+    const idCardField = document.getElementById('ldapuser-postalcode');
+    if (idCardField && !idCardField.disabled && !idCardField.readOnly) {
+        const idCard = idCardField.value.replace(/\D/g, '');
+        idCardField.value = idCard;
+        if (idCard !== '') {
+            if (idCard.length !== 13) {
+                alert('เลขบัตรประชาชนต้องเป็นตัวเลข 13 หลัก');
+                idCardField.focus();
+                return false;
+            }
+            if (!validateThaiIdCard(idCard)) {
+                alert('เลขบัตรประชาชนไม่ถูกต้องตามรูปแบบไทย');
+                idCardField.focus();
+                return false;
+            }
         }
     }
 
@@ -1333,6 +1375,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.classList.remove('is-invalid', 'is-valid');
             }
         });
+    }
+
+    const idCardField = document.getElementById('ldapuser-postalcode');
+    if (idCardField) {
+        const validateIdCardField = function() {
+            const idCard = this.value.replace(/\D/g, '');
+            this.value = idCard;
+            if (idCard === '') {
+                this.classList.remove('is-invalid', 'is-valid');
+                return;
+            }
+            if (idCard.length === 13 && validateThaiIdCard(idCard)) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        };
+        idCardField.addEventListener('blur', validateIdCardField);
+        idCardField.addEventListener('input', validateIdCardField);
     }
     
     // Add username format validation

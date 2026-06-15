@@ -436,6 +436,15 @@ class LdapuserController extends Controller
                 }
             }
             
+            // Check for duplicate ID card (if changed)
+            if (!empty($model->postalCode)) {
+                $ldap = new LdapHelper();
+                $excludePrincipal = !empty($model->sAMAccountName) ? $model->sAMAccountName : $cn;
+                if ($ldap->isIdCardRegisteredByOtherUser($model->postalCode, $excludePrincipal)) {
+                    $validationErrors[] = 'เลขบัตรประชาชนนี้มีในระบบแล้ว';
+                }
+            }
+
             if (!empty($validationErrors)) {
                 if (Yii::$app->request->isAjax) {
                     return $this->asJson([
@@ -457,7 +466,7 @@ class LdapuserController extends Controller
 
                 // Only include fields that are actually in the form
                 $updateData = [];
-                $fields = ['sAMAccountName', 'displayName', 'department', 'title', 'mail', 'physicalDeliveryOfficeName', 'telephoneNumber', 'country'];
+                $fields = ['sAMAccountName', 'displayName', 'department', 'title', 'mail', 'physicalDeliveryOfficeName', 'telephoneNumber', 'country', 'postalCode'];
                 foreach ($fields as $field) {
                     if (isset($model->$field)) {
                         if ($field === 'country') {

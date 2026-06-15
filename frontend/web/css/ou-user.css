@@ -168,6 +168,10 @@
     color: #fff !important;
 }
 
+.integration-filter-action-btn {
+    white-space: nowrap;
+}
+
 .content-wrapper {
     padding: 20px;
 }
@@ -285,15 +289,48 @@
     white-space: nowrap;
 }
 
+.ou-users .table td.col-cn .col-cn-id-card-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.2rem;
+    max-width: 100%;
+}
+
 .ou-users .table td.col-cn .col-cn-id-card {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 300;
-    color: #6c757d;
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #343a40;
     line-height: 1.25;
     white-space: nowrap;
-    margin-top: 0.15rem;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+.ou-users .table td.col-cn .col-cn-id-card-copy {
+    flex: 0 0 auto;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    line-height: 1;
+    color: #6c757d;
+    text-decoration: none;
+    border: 0;
+    vertical-align: middle;
+}
+
+.ou-users .table td.col-cn .col-cn-id-card-copy:hover,
+.ou-users .table td.col-cn .col-cn-id-card-copy:focus {
+    color: #0d6efd;
+    text-decoration: none;
+}
+
+.ou-users .table td.col-cn .col-cn-id-card-copy.copied {
+    color: #198754;
+}
+
+.ou-users .table td.col-cn .col-cn-id-card-copy i {
+    font-size: 0.78rem;
 }
 
 .ou-users .table .col-title {
