@@ -428,6 +428,7 @@ if (class_exists('yii\debug\Module')) {
     </div>
 
     <?php
+    $loginUrl = Yii::$app->urlManager->createUrl(['site/login']);
     $this->registerJs("
         $(document).ready(function() {
             // Enable Bootstrap tooltips
@@ -600,21 +601,8 @@ if (class_exists('yii\debug\Module')) {
                     success: function(response) {
                         // กรณีปกติ: คาดหวัง JSON {success: true|false, errors?: {...}}
                         if (response && typeof response === 'object' && response.success) {
-                            form[0].reset();
-                            $('#passwordStrengthBar').css('width','0%').removeClass('bg-danger bg-warning bg-info bg-success');
-                            $('#passwordStrengthText').text('Password strength: -');
-                            $('#username-availability').html('');
-                            $('#name-availability').html('');
-                            $('#id-card-availability').html('');
-                            idCardExists = false;
-                            var modalEl = document.getElementById('successModal');
-                            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                                var successModal = new bootstrap.Modal(modalEl);
-                                successModal.show();
-                            } else {
-                                // ถ้า Bootstrap Modal ใช้งานไม่ได้ ให้ fallback เป็น redirect ทันทีไปหน้ารออนุมัติ
-                                window.location.href = '" . Yii::$app->urlManager->createUrl(['ldapuser/ou-register']) . "';
-                            }
+                            var redirectUrl = (response.redirect || '" . $loginUrl . "');
+                            window.location.href = redirectUrl;
                         } else if (response && typeof response === 'object' && response.errors) {
                             $.each(response.errors, function(field, errors) {
                                 var input = form.find('[name=\"AdUser[' + field + ']\"]');
@@ -629,8 +617,7 @@ if (class_exists('yii\debug\Module')) {
                                 errorDiv.text(errors[0]);
                             });
                         } else {
-                            // ถ้า response ไม่ใช่ JSON ที่คาด (เช่น redirect HTML) ให้ถือว่าสำเร็จแล้วและ redirect ไปหน้ารออนุมัติ
-                            window.location.href = '" . Yii::$app->urlManager->createUrl(['ldapuser/ou-register']) . "';
+                            window.location.href = '" . $loginUrl . "';
                         }
                     },
                     error: function() {

@@ -215,11 +215,14 @@ class AdUserController extends Controller
             // ความยาวรหัสผ่านบังคับผ่าน Model rule แล้ว ไม่ต้องตรวจซ้ำที่ Controller
 
             if ($model->createUser()) {
+                Yii::$app->session->setFlash('success', 'ลงทะเบียนสำเร็จ กรุณาเข้าสู่ระบบด้วยบัญชีที่ลงทะเบียน');
                 if (Yii::$app->request->isAjax) {
-                    return $this->asJson(['success' => true]);
+                    return $this->asJson([
+                        'success' => true,
+                        'redirect' => Yii::$app->urlManager->createUrl(['site/login']),
+                    ]);
                 }
-                Yii::$app->session->setFlash('success', 'ลงทะเบียนสำเร็จ คำขอของคุณถูกส่งให้เจ้าหน้าที่พิจารณาแล้ว กรุณาตรวจสอบสถานะในหน้ารายการรออนุมัติ');
-                return $this->redirect(['ldapuser/ou-register']);
+                return $this->redirect(['site/login']);
             } else {
                 // Log the specific error for debugging
                 if (!empty($model->errors)) {
